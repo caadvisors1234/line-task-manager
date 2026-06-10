@@ -1,0 +1,11 @@
+# OS
+.DS_Store
+
+# 認証情報・環境変数(誤コミット防止)
+.env
+.env.*
+*credentials*.json
+
+# Node / clasp(将来のGAS開発用)
+node_modules/
+.clasprc.json

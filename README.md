@@ -1,0 +1,28 @@
+# line-task-manager
+
+お客様とのLINEでのやり取りにおける対応漏れを防止するための、タスク自動管理の仕組み(提案・実装)を管理するリポジトリです。
+
+## 概要
+
+お客様とのLINEグループに記録用アカウント(LINE公式アカウント)を追加し、受信したメッセージをAIで分類・タスク化して、毎朝社内に共有する仕組みを構築します。
+
+- メッセージ収集: LINE Messaging API(Webhook)
+- 処理基盤: Google Apps Script
+- AI分類: Gemini API(gemini-3.1-flash-lite)
+- タスク管理: Google スプレッドシート
+- 通知: 社内LINEグループへの日次サマリ配信
+
+## 構成
+
+| パス | 内容 |
+|---|---|
+| `docs/index.html` | 提案資料(GitHub Pages で公開) |
+| `proposal.md` | 詳細な対策案・技術仕様 |
+
+## 公開ページ
+
+GitHub Pages(Settings > Pages > Source: `main` ブランチ / `docs` フォルダ)で `docs/index.html` を公開しています。
+
+## 今後の予定
+
+- `src/` 配下に Google Apps Script の実装を追加予定
