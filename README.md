@@ -21,7 +21,11 @@
 
 ## 公開ページ
 
-GitHub Pages(Settings > Pages > Source: `main` ブランチ / `docs` フォルダ)で `docs/index.html` を公開しています。
+提案資料は GitHub Pages で公開しています。
+
+https://caadvisors1234.github.io/line-task-manager/
+
+(Settings > Pages > Source: `main` ブランチ / `docs` フォルダ)
 
 ## 今後の予定
 
