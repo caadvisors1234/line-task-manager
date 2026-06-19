@@ -308,7 +308,7 @@
   <div class="header-inner">
     <div class="doc-meta">
       <span>社内検討資料</span>
-      <span>2026年6月10日</span>
+      <span>2026年6月19日</span>
     </div>
     <h1>お客様LINEにおける対応漏れ防止策のご提案</h1>
     <p class="subtitle">依頼の自動記録と毎朝の共有による、確実なタスク管理体制の構築</p>
@@ -320,7 +320,7 @@
 
   <div class="summary">
     <div class="label">提案要旨</div>
-    <p>お客様とのLINEグループに記録専用のアカウントを追加し、いただいたご依頼を<strong>自動で一覧表に整理</strong>、毎朝<strong>未対応の案件を社内LINEへ通知</strong>する仕組みを導入します。お客様への返信はこれまでどおり担当者が行うため、<strong>お客様との関係性や日々の運用を変えることなく</strong>、対応漏れの防止と引き継ぎの円滑化を実現します。費用は月額5,000円(税別)前後です。</p>
+    <p>お客様とのLINEグループに記録専用のアカウントを追加し、いただいたご依頼を<strong>自動で一覧表に整理</strong>、毎朝<strong>未対応の案件を社内LINEへ通知</strong>する仕組みを導入します。お客様への返信はこれまでどおり担当者が行うため、<strong>お客様との関係性や日々の運用を変えることなく</strong>、対応漏れの防止と引き継ぎの円滑化を実現します。費用は月額5,000円(税別)程度です。</p>
   </div>
 
   <!-- 1. 現状の課題 -->
@@ -355,12 +355,12 @@
       <div class="flow-arrow"><span class="glyph">↓</span><small>メッセージを自動で記録</small></div>
       <div class="flow-box accent">
         <div class="t">AIによる自動整理</div>
-        <div class="d">内容を「作業依頼」「質問・相談」「日程調整」等に分類し、緊急度と期限を読み取ります</div>
+        <div class="d">直前のやり取りの流れをふまえて内容の種別(新規依頼・回答や承認・質問など)を判別し、緊急度と期限を読み取ります。受領した画像・ファイルはDropboxへ自動保存します</div>
       </div>
       <div class="flow-arrow"><span class="glyph">↓</span><small>依頼のみを抽出して一覧化</small></div>
       <div class="flow-box">
         <div class="t">タスク一覧表</div>
-        <div class="d">全サロンの依頼がGoogleスプレッドシート上の一覧表に自動で蓄積されます</div>
+        <div class="d">全サロンの依頼がGoogleスプレッドシートに自動で蓄積されます。AIの自動入力に加え、担当者名・対応状況などを手動で書き込み一元管理できます</div>
       </div>
       <div class="flow-arrow"><span class="glyph">↓</span><small>毎朝9時に配信</small></div>
       <div class="flow-box accent">
@@ -377,7 +377,7 @@
   <!-- 3. 日々の運用 -->
   <section>
     <h2><span class="index">03</span>日々の運用</h2>
-    <p>導入後に各メンバーが行うことは、次の2点のみです。新しいアプリの導入や操作の習得は必要ありません。</p>
+    <p>導入後に各メンバーが行うことは、ごくシンプルです。新しいアプリの導入や操作の習得は必要ありません。</p>
 
     <div class="steps" style="margin-top:24px;">
       <div class="step">
@@ -390,8 +390,15 @@
       <div class="step">
         <div class="s-num">2</div>
         <div>
-          <h3>対応後、一覧表で「完了」にする</h3>
-          <p>スプレッドシートのステータス欄を変更するだけで、翌朝の通知から自動的に除外されます。</p>
+          <h3>対応後、一覧表で対応状況を更新する</h3>
+          <p>スプレッドシートの対応状況を変更すると行の色で進捗が分かり、翌朝の通知にも反映されます。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="s-num">3</div>
+        <div>
+          <h3>担当・補足を書き込む（必要に応じて）</h3>
+          <p>担当者名・対応指示や、後日届く音声指示のメモなどを同じ一覧表に追記し、一元管理できます。これらの手動入力欄をAIが上書きすることはありません。</p>
         </div>
       </div>
     </div>
@@ -415,25 +422,36 @@
     <div class="point">
       AIの判定に迷いがある場合は「念のためタスクに含める」設定とします。多めに拾い、不要なものを人が除外する運用のほうが、取りこぼしを確実に防げるためです。
     </div>
+
+    <div class="point">
+      お客様への返信時は、過去のやり取りをもとにAIが用意した<strong>返信案</strong>を下書きとして参考にできます。送信はこれまでどおり担当者が行うため、文面の最終判断は人の手に残ります。
+    </div>
   </section>
 
   <!-- 4. タスク一覧表 -->
   <section>
-    <h2><span class="index">04</span>自動で作成されるタスク一覧表</h2>
-    <p>Googleスプレッドシートに、次の形式で自動記録されます。</p>
+    <h2><span class="index">04</span>タスク一覧表（AIの自動入力＋手動管理の一元化）</h2>
+    <p>現在お使いのタスクシート（連絡日・店舗名・作業内容・担当者・対応状況・音声指示など）の項目をそのまま引き継ぎ、そこにAIの自動入力を重ねた一覧表です。列は<strong>「AIが自動で記入する欄」と「担当者が手動で管理する欄」に分かれており、AIが手動欄を上書きすることはありません。</strong></p>
     <div style="overflow-x:auto; margin-top:20px;">
       <table>
         <thead>
-          <tr><th>受信日時</th><th>サロン名</th><th>内容(AIによる要約)</th><th>緊急度</th><th>期限</th><th>状況</th></tr>
+          <tr>
+            <th colspan="5" style="text-align:center; background:#eef7f0; color:var(--accent-dark); border-bottom:1px solid var(--hairline);">AIが自動で記入</th>
+            <th colspan="3" style="text-align:center; background:var(--bg-soft); color:var(--ink-soft); border-bottom:1px solid var(--hairline);">担当者が手動で管理</th>
+          </tr>
+          <tr>
+            <th>発生日</th><th>店舗名</th><th>種別</th><th>内容(AIによる要約)</th><th>緊急度</th>
+            <th>担当者</th><th>対応状況</th><th>音声指示メモ</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>6/9 14:02</td><td>サロンA</td><td>広告画像のクーポンを差し替え</td><td><span class="badge high">急</span></td><td>6/12</td><td>未対応</td></tr>
-          <tr><td>6/9 16:30</td><td>サロンB</td><td>クーポン内容の変更について相談したい</td><td><span class="badge mid">中</span></td><td>—</td><td>未対応</td></tr>
-          <tr><td>6/8 11:15</td><td>サロンC</td><td>掲載文の「営業時間」を修正</td><td><span class="badge mid">中</span></td><td>—</td><td>対応中</td></tr>
+          <tr><td>6/9 LINE</td><td>サロンF</td><td>新規依頼</td><td>ホットペッパー掲載用バナーの差し替え</td><td><span class="badge high">急</span></td><td>田中</td><td>反映待ち</td><td>—</td></tr>
+          <tr><td>6/9 LINE</td><td>サロンG</td><td>質問・相談</td><td>次回キャンペーンの配信時期について相談したい</td><td><span class="badge mid">中</span></td><td>佐藤</td><td>未対応</td><td>—</td></tr>
+          <tr><td>6/10 LINE</td><td>サロンH</td><td>回答・承認</td><td>「下書き登録します」へのご返信＝進行承認。公開作業へ</td><td><span class="badge mid">中</span></td><td>田中</td><td>お客様連絡待ち</td><td>6/11 価格は据置で</td></tr>
         </tbody>
       </table>
     </div>
-    <p style="margin-top:20px;">サロン名や対応状況で絞り込めるため、特定サロンの依頼履歴の確認や、担当交代時の引き継ぎにそのまま活用できます。元のメッセージ全文も別シートに自動保存され、やり取りの経緯確認にも利用できます。</p>
+    <p style="margin-top:20px;">対応状況は現在の運用（行の色で進捗を管理）をそのまま踏襲し、<strong>未対応／依頼中／反映待ち／お客様連絡待ち／タスク完了済み</strong>などを選ぶと行が自動で色分けされます。このほか、期限・関連案件・<strong>返信提案</strong>・<strong>納品データ（Dropboxの共有リンク）</strong>の欄も備えます。元のメッセージ全文も別シートに自動保存され、やり取りの経緯確認にそのまま利用できます。</p>
   </section>
 
   <!-- 5. 導入計画 -->
@@ -472,10 +490,11 @@
         <tr><td>LINE公式アカウント(通知配信)</td><td>月5,000円(税別)</td><td>社内グループ(約30名)への毎朝の通知に必要な有料プラン</td></tr>
         <tr><td>AIによる分類(Gemini)</td><td>0円〜数百円/月</td><td>現在のメッセージ量であれば、概ね無料の範囲で運用可能</td></tr>
         <tr><td>一覧表・処理基盤(Google)</td><td>0円</td><td>無料の範囲で運用可能。サーバー等の追加機材は不要</td></tr>
-        <tr class="total-row"><td>合計</td><td>月5,000円(税別)前後</td><td></td></tr>
+        <tr><td>受領データの保存(Dropbox)</td><td>0円〜</td><td>現在お使いのDropboxを利用。本システムによる追加費用はなし(保存容量は現在のご契約に依存)</td></tr>
+        <tr class="total-row"><td>合計</td><td>月5,000円(税別)程度</td><td></td></tr>
       </tbody>
     </table>
-    <p class="note">※試験運用の期間中は通知の送信数が少ないため無料プランで開始し、本格運用への移行時に有料プランへ切り替えます。</p>
+    <p class="note">※社内グループ(約30名)への毎朝の配信は無料枠(月200通)を超えるため、試験運用の開始時から有料プラン(月5,000円・税別)を利用します。</p>
   </section>
 
   <!-- 7. 留意事項 -->
@@ -490,14 +509,14 @@
       </div>
       <div class="caution">
         <div class="d">
-          <strong>AIの分類精度は100%ではありません</strong>
-          依頼でないものをタスクとして登録する場合があります(一覧表で「対象外」とするのみで対処可能)。試験運用の期間中に精度を調整します。
+          <strong>AIの判定は100%ではありません</strong>
+          依頼でないものをタスクとして登録したり、既存案件への回答か新規のご要望かの判別に迷う場合があります。迷った場合は「念のためタスク化」「要確認の表示」とし、人が最終確認できる設計です。試験運用の期間中に精度を調整します。
         </div>
       </div>
       <div class="caution">
         <div class="d">
-          <strong>当面の対象はテキストメッセージです</strong>
-          画像やファイルは「資料を受領した」という記録のみを残します。自動保存は今後の拡張で対応予定です。
+          <strong>受領したデータはDropboxへ自動保存します</strong>
+          お客様から届いた画像・ファイル・データは自動でDropboxに保存し、共有リンクを一覧表に記録します。なお、文章の意味の読み取り(分類・要約)は引き続きテキストを対象とします。
         </div>
       </div>
     </div>
@@ -518,11 +537,19 @@
         </div>
         <div class="faq-item">
           <dt>新しい操作を覚える必要はありますか。</dt>
-          <dd>ほぼありません。「毎朝の通知を確認する」「対応後に一覧表で完了にする」の2点のみで、アプリの追加導入も不要です。</dd>
+          <dd>ほぼありません。基本は「毎朝の通知を確認する」「対応後に一覧表の対応状況を更新する」だけで、必要に応じて担当者名や補足を書き込むのみです。新しいアプリの追加導入も不要です。</dd>
         </div>
         <div class="faq-item">
           <dt>メッセージの内容はどこに保存されますか。</dt>
           <dd>自社で管理するGoogleスプレッドシートに保存されます。閲覧できるのは、権限を付与した社内メンバーのみです。</dd>
+        </div>
+        <div class="faq-item">
+          <dt>お客様から届いた画像やファイルはどう扱われますか。</dt>
+          <dd>自動でDropboxに保存し、その共有リンクを一覧表に記録します。受信後すぐに保存するため、データの取りこぼしを防げます。</dd>
+        </div>
+        <div class="faq-item">
+          <dt>AIが入力した内容を、後から人が直せますか。</dt>
+          <dd>はい。担当者名・対応状況・対応指示・音声指示メモなどの手動欄は自由に記入でき、AIがこれらを上書きすることはありません。</dd>
         </div>
       </dl>
     </div>
@@ -531,18 +558,18 @@
   <!-- 9. 今後の拡張 -->
   <section>
     <h2><span class="index">09</span>今後の拡張(必要に応じて追加可能)</h2>
-    <ul class="plain">
+    <p>受領データのDropbox保存・返信提案・担当者の手動管理は、最初の構築段階に含みます。さらに、ご要望に応じて以下を追加できます。</p>
+    <ul class="plain" style="margin-top:16px;">
       <li>対応が滞っている案件や期限間近の案件のみを再通知するリマインド機能</li>
-      <li>お客様から届いた画像・資料の自動保存</li>
       <li>サロン別の依頼件数・対応スピードをまとめた週次レポート</li>
-      <li>案件ごとの担当者の自動割り当てと担当者別の通知</li>
-      <li>一次受けの定型文の自動返信</li>
+      <li>サロンごとの担当者の自動割り当てと担当者別の通知（担当者の手動管理は対応済み）</li>
+      <li>返信案の自動送信（一次受けの定型文返信。当面は担当者による送信を維持）</li>
     </ul>
   </section>
 
   <footer>
     <span>株式会社サイバーアクセル・アドバイザーズ</span>
-    <span>お客様LINEにおける対応漏れ防止策のご提案|2026年6月10日</span>
+    <span>お客様LINEにおける対応漏れ防止策のご提案|2026年6月19日</span>
   </footer>
 </div>
 
