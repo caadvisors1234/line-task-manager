@@ -114,26 +114,70 @@
   .issue .t { font-weight: 600; font-size: 14.5px; color: var(--ink); padding-top: 1px; }
   .issue .d { color: var(--ink-soft); font-size: 14.5px; }
 
-  /* フロー図 */
-  .flow { margin-top: 8px; }
-  .flow-box {
-    border: 1px solid var(--hairline);
-    background: #fff;
-    padding: 18px 24px;
-    display: grid;
-    grid-template-columns: 180px 1fr;
-    gap: 20px;
-    align-items: center;
+  /* グループ構成 */
+  .group-row {
+    display: flex; flex-wrap: wrap; align-items: stretch;
+    gap: 10px; margin-top: 28px;
   }
-  .flow-box.accent { border-left: 3px solid var(--accent); }
-  .flow-box .t { font-weight: 600; font-size: 15px; }
-  .flow-box .d { font-size: 13.5px; color: var(--ink-soft); }
-  .flow-arrow {
+  .group-chip {
+    flex: 1 1 0; min-width: 158px;
+    border: 1px solid var(--hairline); border-radius: 6px;
+    padding: 12px 16px; background: #fff;
+  }
+  .group-chip.add { border-color: #bcdfc9; background: #fafdfb; }
+  .group-chip .role { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+  .group-chip.add .role { color: var(--accent-dark); }
+  .group-chip .who { font-weight: 600; font-size: 14px; margin-top: 3px; }
+  .group-chip .who small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+  .group-plus { align-self: center; color: var(--muted); font-size: 15px; }
+
+  /* 凡例 */
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; margin: 30px 0 4px; font-size: 12.5px; color: var(--ink-soft); }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .key { width: 20px; height: 12px; border-radius: 3px; }
+  .legend .key.auto { background: #e3f3e8; border: 1px solid #bcdfc9; }
+  .legend .key.human { background: #eaeef4; border: 1px solid #d3d9e2; }
+
+  /* ワークフロー図 */
+  .workflow { margin-top: 14px; }
+  .wf-zone-head {
     display: flex; align-items: center; gap: 12px;
-    padding: 6px 0 6px 32px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
+    margin: 8px 0 12px;
   }
-  .flow-arrow .glyph { color: var(--accent-dark); font-size: 15px; }
-  .flow-arrow small { font-size: 12.5px; color: var(--muted); letter-spacing: 0.04em; }
+  .wf-zone-head::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+  .wf-zone-head.auto { color: var(--accent-dark); }
+  .wf-zone-head.human { color: var(--ink-soft); }
+  .wf-node {
+    display: grid; grid-template-columns: 1fr auto; gap: 10px 16px;
+    align-items: center;
+    border: 1px solid var(--hairline); border-left: 3px solid var(--muted);
+    border-radius: 6px; background: #fff; padding: 14px 18px;
+  }
+  .wf-node.input { border-left-color: var(--ink); }
+  .wf-node.auto  { border-left-color: var(--accent); background: #fafdfb; }
+  .wf-node.human { border-left-color: var(--muted); }
+  .wf-eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 3px; }
+  .wf-node.auto .wf-eyebrow { color: var(--accent-dark); }
+  .wf-title { font-weight: 600; font-size: 14.5px; }
+  .wf-desc { font-size: 13px; color: var(--ink-soft); margin-top: 4px; line-height: 1.8; }
+  .wf-tag {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 4px 11px; border-radius: 100px; white-space: nowrap;
+  }
+  .wf-tag.auto  { background: #e3f3e8; color: var(--accent-dark); }
+  .wf-tag.human { background: #eaeef4; color: var(--ink-soft); }
+  .wf-link { display: flex; align-items: center; gap: 11px; padding: 8px 0 8px 30px; }
+  .wf-link .glyph { color: var(--accent-dark); font-size: 15px; line-height: 1; }
+  .wf-link.human .glyph { color: var(--muted); }
+  .wf-link small { font-size: 12.5px; color: var(--muted); letter-spacing: 0.04em; }
+  .wf-loop {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 16px; padding: 12px 16px;
+    border: 1px dashed var(--hairline); border-radius: 6px;
+    font-size: 13px; color: var(--ink-soft);
+  }
+  .wf-loop .glyph { color: var(--accent-dark); font-size: 16px; }
 
   /* ポイント */
   .point {
@@ -182,6 +226,173 @@
     white-space: pre-line;
     color: #222;
     box-shadow: 0 1px 1px rgba(0,0,0,0.12);
+  }
+
+  /* グループLINEトーク画面モック */
+  .chat {
+    background: var(--line-bg);
+    border-radius: 12px;
+    max-width: 392px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(26,36,51,0.12);
+  }
+  .chat-head {
+    background: rgba(0,0,0,0.16);
+    color: #fff;
+    padding: 11px 15px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chat-head .count { font-weight: 400; font-size: 12px; opacity: 0.82; }
+  .chat-body { padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 13px; }
+  .msg { display: flex; flex-direction: column; max-width: 80%; }
+  .msg .nm { font-size: 11px; color: rgba(255,255,255,0.92); margin: 0 0 4px 5px; }
+  .msg .b {
+    background: #fff;
+    border-radius: 3px 14px 14px 14px;
+    padding: 9px 13px;
+    font-size: 12.5px; line-height: 1.75;
+    color: #1f242b;
+    white-space: pre-line;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.12);
+  }
+  .msg.me { align-self: flex-end; align-items: flex-end; }
+  .msg.me .b { background: var(--accent); color: #fff; border-radius: 14px 3px 14px 14px; }
+  .msg .thumb {
+    width: 132px; margin-top: 6px;
+    border-radius: 9px; overflow: hidden;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.12);
+  }
+  .msg .thumb .ph {
+    height: 76px;
+    background: linear-gradient(135deg, #c8d3e0 0%, #aab8c9 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .msg .thumb .ph::after {
+    content: ""; width: 34px; height: 26px;
+    border: 2px solid rgba(255,255,255,0.9); border-radius: 4px;
+  }
+  .msg .thumb .cap { background: #fff; font-size: 10.5px; color: var(--muted); padding: 4px 8px; }
+  .chat-sys { text-align: center; margin: 1px 0; }
+  .chat-sys span {
+    display: inline-block;
+    background: rgba(0,0,0,0.2);
+    color: rgba(255,255,255,0.95);
+    font-size: 11px; line-height: 1.6;
+    padding: 5px 13px; border-radius: 100px;
+  }
+
+  /* 抽出 → タスク化 */
+  .extract { margin-top: 2px; }
+  .ex-arrow {
+    display: flex; align-items: center; gap: 11px;
+    padding: 14px 0 14px 22px;
+    font-size: 13px; color: var(--ink-soft);
+  }
+  .ex-arrow .glyph { color: var(--accent-dark); font-size: 16px; }
+  .ex-arrow strong { color: var(--ink); font-weight: 600; }
+  .ex-card {
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    background: #fafdfb;
+    padding: 16px 20px;
+    max-width: 460px;
+  }
+  .ex-card .ex-ttl { font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em; color: var(--accent-dark); margin-bottom: 12px; }
+  .ex-card dl { display: grid; grid-template-columns: 84px 1fr; gap: 8px 16px; font-size: 13.5px; margin: 0; }
+  .ex-card dt { color: var(--muted); }
+  .ex-card dd { color: var(--ink); margin: 0; }
+
+  /* スプレッドシート枠 */
+  .sheet { border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; }
+  .sheet-bar {
+    display: flex; align-items: center; gap: 9px;
+    background: #f4f6f8;
+    border-bottom: 1px solid var(--hairline);
+    padding: 10px 15px;
+    font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+  }
+  .sheet-bar .ico { width: 15px; height: 15px; border-radius: 3px; background: var(--accent); }
+  .sheet-bar .src { margin-left: auto; font-weight: 400; font-size: 11.5px; color: var(--muted); }
+  .sheet .scroll { overflow-x: auto; }
+
+  /* 列の担当ドット（AI自動／手動） */
+  .th-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+  .th-dot.ai  { background: var(--accent); }
+  .th-dot.man { background: var(--muted); }
+  .st-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; font-size: 12.5px; color: var(--ink-soft); }
+  .st-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .st-legend .lb { color: var(--muted); }
+
+  /* 対応状況の色分け（現行シート準拠の9区分） */
+  .sw {
+    display: inline-block; width: 22px; height: 14px;
+    border-radius: 3px; border: 1px solid rgba(26,36,51,0.18);
+    vertical-align: -2px; flex: none;
+  }
+  .sw.s-todo    { background: #ffffff; }
+  .sw.s-req     { background: #f4cccc; }
+  .sw.s-uncheck { background: #f4921e; }
+  .sw.s-chk     { background: #ec47dd; }
+  .sw.s-done    { background: #b7b7b7; }
+  .sw.s-sato    { background: #ffe14d; }
+  .sw.s-rush    { background: #ff2b22; }
+  .sw.s-hanei   { background: #4a86d8; }
+  .sw.s-cust    { background: #b6d7a8; }
+
+  .color-key { border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; margin-top: 14px; }
+  .color-key .ck-head {
+    background: #f4f6f8; border-bottom: 1px solid var(--hairline);
+    padding: 9px 15px; font-size: 12px; font-weight: 600;
+    color: var(--ink-soft); letter-spacing: 0.04em;
+  }
+  .color-key .ck-row {
+    display: grid; grid-template-columns: 28px 220px 1fr;
+    gap: 14px; align-items: center;
+    padding: 9px 15px; font-size: 13px;
+    border-bottom: 1px solid #eef1f5;
+  }
+  .color-key .ck-row:last-child { border-bottom: none; }
+  .color-key .ck-name { font-weight: 600; color: var(--ink); }
+  .color-key .ck-desc { color: var(--ink-soft); font-size: 12.5px; }
+
+  /* シート行の塗り分け */
+  tr.s-todo  td { background: #ffffff; }
+  tr.s-req   td { background: #f7d6d6; }
+  tr.s-uncheck td { background: #f6a94e; }
+  tr.s-chk   td, tr.s-chk td:first-child { background: #ec47dd; color: #fff; }
+  tr.s-done  td { background: #d6d6d6; }
+  tr.s-sato  td { background: #ffe98a; }
+  tr.s-rush  td, tr.s-rush td:first-child { background: #ff453c; color: #fff; }
+  tr.s-hanei td, tr.s-hanei td:first-child { background: #5b93dd; color: #fff; }
+  tr.s-cust  td { background: #c3dfb4; }
+
+  /* 返信提案列 */
+  .reply-col { border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; margin-top: 14px; }
+  .reply-col .rc-head {
+    background: #f4f6f8; border-bottom: 1px solid var(--hairline);
+    padding: 9px 15px; font-size: 12px; font-weight: 600;
+    color: var(--ink-soft); letter-spacing: 0.04em;
+  }
+  .reply-col .rc-row {
+    display: grid; grid-template-columns: 210px 1fr; gap: 16px;
+    padding: 14px 16px; border-bottom: 1px solid #eef1f5;
+  }
+  .reply-col .rc-row:last-child { border-bottom: none; }
+  .reply-col .rc-task { font-size: 13px; color: var(--ink-soft); }
+  .reply-col .rc-store { display: block; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+  .reply-col .rc-draft {
+    font-size: 13px; color: var(--ink-soft); line-height: 1.85;
+    border-left: 3px solid var(--accent); background: #fafdfb;
+    padding: 10px 13px; border-radius: 0 6px 6px 0;
+  }
+  .reply-col .rc-tag {
+    display: inline-block; margin-left: 6px;
+    font-size: 10.5px; font-weight: 600; color: var(--accent-dark);
+    background: #e3f3e8; padding: 1px 8px; border-radius: 100px;
+    vertical-align: 1px; white-space: nowrap;
   }
 
   /* テーブル */
@@ -293,11 +504,16 @@
   }
 
   @media (max-width: 640px) {
-    .issue, .flow-box { grid-template-columns: 1fr; gap: 4px; }
+    .issue { grid-template-columns: 1fr; gap: 4px; }
+    .group-row { flex-direction: column; }
+    .group-plus { display: none; }
+    .reply-col .rc-row { grid-template-columns: 1fr; gap: 8px; }
+    .color-key .ck-row { grid-template-columns: 24px 1fr; gap: 8px 12px; }
     .doc-meta { flex-direction: column; gap: 2px; }
   }
   @media print {
     section { break-inside: avoid; }
+    .wf-node, .wf-link, .group-chip { break-inside: avoid; }
     header { padding: 32px 28px; }
   }
 </style>
@@ -347,25 +563,170 @@
     <h2><span class="index">02</span>対策の概要</h2>
     <p>サロン様ごとのLINEグループに、記録専用のアカウント(以下「記録用アカウント」)を参加させます。このアカウントはグループ内で発言せず、受信したメッセージの整理のみを行います。</p>
 
-    <div class="flow" style="margin-top:28px;">
-      <div class="flow-box">
-        <div class="t">お客様グループ</div>
-        <div class="d">お客様・会社LINE・記録用アカウントで構成(サロンごとに1グループ)</div>
+    <p class="note" style="margin-top:20px;">まず、各グループは次の3者で構成されます。</p>
+    <div class="group-row">
+      <div class="group-chip">
+        <div class="role">送り手</div>
+        <div class="who">お客様（サロン様）</div>
       </div>
-      <div class="flow-arrow"><span class="glyph">↓</span><small>メッセージを自動で記録</small></div>
-      <div class="flow-box accent">
-        <div class="t">AIによる自動整理</div>
-        <div class="d">直前のやり取りの流れをふまえて内容の種別(新規依頼・回答や承認・質問など)を判別し、緊急度と期限を読み取ります。受領した画像・ファイルはDropboxへ自動保存します</div>
+      <div class="group-plus">＋</div>
+      <div class="group-chip">
+        <div class="role">これまでどおり</div>
+        <div class="who">会社LINE<small>担当者が返信</small></div>
       </div>
-      <div class="flow-arrow"><span class="glyph">↓</span><small>依頼のみを抽出して一覧化</small></div>
-      <div class="flow-box">
-        <div class="t">タスク一覧表</div>
-        <div class="d">全サロンの依頼がGoogleスプレッドシートに自動で蓄積されます。AIの自動入力に加え、担当者名・対応状況などを手動で書き込み一元管理できます</div>
+      <div class="group-plus">＋</div>
+      <div class="group-chip add">
+        <div class="role">今回追加</div>
+        <div class="who">記録用アカウント<small>無言で記録</small></div>
       </div>
-      <div class="flow-arrow"><span class="glyph">↓</span><small>毎朝9時に配信</small></div>
-      <div class="flow-box accent">
-        <div class="t">社内LINEへ通知</div>
-        <div class="d">未対応の案件を全員で確認し、対応後に一覧表へ完了を記録します</div>
+    </div>
+
+    <div class="legend">
+      <span><span class="key auto"></span>自動で行われる処理</span>
+      <span><span class="key human"></span>これまでどおり人が行う対応</span>
+    </div>
+
+    <div class="workflow">
+      <div class="wf-node input">
+        <div>
+          <div class="wf-eyebrow">お客様</div>
+          <div class="wf-title">グループLINEにご依頼・ご質問を送信</div>
+        </div>
+      </div>
+      <div class="wf-link"><span class="glyph">↓</span><small>記録用アカウントが自動で受信</small></div>
+
+      <div class="wf-zone-head auto">自動で行われる ── システムが担う部分</div>
+
+      <div class="wf-node auto">
+        <div>
+          <div class="wf-eyebrow">記録用アカウント</div>
+          <div class="wf-title">メッセージをそのまま記録</div>
+          <div class="wf-desc">グループ内では一切発言せず、届いたメッセージを受信・保存するだけです。</div>
+        </div>
+        <div class="wf-tag auto">自動</div>
+      </div>
+      <div class="wf-link"><span class="glyph">↓</span><small>内容をAIへ受け渡し</small></div>
+
+      <div class="wf-node auto">
+        <div>
+          <div class="wf-eyebrow">AI（Gemini）</div>
+          <div class="wf-title">内容を判別し、整理する</div>
+          <div class="wf-desc">直前のやり取りの流れをふまえて種別（新規依頼・回答や承認・質問など）を判別し、急ぎかどうかや対応期日を読み取ります。受領した画像・ファイルはDropboxへ自動保存します。</div>
+        </div>
+        <div class="wf-tag auto">自動</div>
+      </div>
+      <div class="wf-link"><span class="glyph">↓</span><small>依頼だけを抽出して一覧化</small></div>
+
+      <div class="wf-node auto">
+        <div>
+          <div class="wf-eyebrow">タスク一覧表（Googleスプレッドシート）</div>
+          <div class="wf-title">全サロンの依頼を自動で蓄積</div>
+          <div class="wf-desc">AIの自動入力に加え、担当者名・対応状況などを手動で書き込み、一元管理できます。</div>
+        </div>
+        <div class="wf-tag auto">自動</div>
+      </div>
+      <div class="wf-link"><span class="glyph">↓</span><small>毎朝9時台に配信</small></div>
+
+      <div class="wf-node auto">
+        <div>
+          <div class="wf-eyebrow">社内LINEグループ</div>
+          <div class="wf-title">未対応の案件を全員へ通知</div>
+          <div class="wf-desc">その日に対応すべき案件を、急ぎ・期限の近い順に整理してお届けします。</div>
+        </div>
+        <div class="wf-tag auto">自動</div>
+      </div>
+
+      <div class="wf-zone-head human">これまでどおり人が行う</div>
+
+      <div class="wf-node human">
+        <div>
+          <div class="wf-eyebrow">担当者</div>
+          <div class="wf-title">お客様へ返信・対応する</div>
+          <div class="wf-desc">通知を確認し、これまでどおり担当者がお客様へ返信します。文面の最終判断は人の手に残ります（AIが用意した返信案を下書きとして参考にすることも可能）。</div>
+        </div>
+        <div class="wf-tag human">担当者</div>
+      </div>
+      <div class="wf-link human"><span class="glyph">↓</span><small>対応の結果を一覧表へ反映</small></div>
+
+      <div class="wf-node human">
+        <div>
+          <div class="wf-eyebrow">担当者</div>
+          <div class="wf-title">一覧表で対応状況を更新する</div>
+          <div class="wf-desc">対応状況を更新すると行の色で進捗が分かり、翌朝の通知にも反映されます。</div>
+        </div>
+        <div class="wf-tag human">担当者</div>
+      </div>
+
+      <div class="wf-loop"><span class="glyph">↻</span>この流れが毎日くり返され、未対応の案件が埋もれることを防ぎます。</div>
+    </div>
+
+    <p class="mock-caption">実際のやり取りが、こうしてタスクになります</p>
+    <div class="chat">
+      <div class="chat-head">サロンA様<span class="count">3</span></div>
+      <div class="chat-body">
+        <div class="msg">
+          <div class="nm">サロンA</div>
+          <div class="b">お世話になっております。ホットペッパーの広告バナーを差し替えたいので、画像をお送りします。</div>
+          <div class="thumb"><div class="ph"></div><div class="cap">バナー画像_6月.jpg</div></div>
+        </div>
+        <div class="msg me">
+          <div class="b">サロンA様
+いつもお世話になっております。サイバーアクセル・アドバイザーズでございます。
+
+お忙しい中、ご連絡いただきありがとうございます。
+上記内容につきまして、かしこまりました。社内で確認して改めてご連絡させていただきます。
+
+何卒よろしくお願い致します。
+サイバーアクセル・アドバイザーズ</div>
+        </div>
+        <div class="chat-sys"><span>記録用アカウントがこのグループに参加しています（メッセージには反応しません）</span></div>
+      </div>
+    </div>
+
+    <div class="extract">
+      <div class="ex-arrow"><span class="glyph">↓</span><strong>AI</strong>が内容を判別し、1件のタスクに整理</div>
+      <div class="ex-card">
+        <div class="ex-ttl">タスク一覧表（現行シート）に自動で追加される内容</div>
+        <dl>
+          <dt>タスク発生日</dt><dd>6/18 LINE</dd>
+          <dt>店舗名</dt><dd>サロンA様</dd>
+          <dt>メッセージ種別</dt><dd>新規依頼</dd>
+          <dt>作業内容</dt><dd>ホットペッパー広告バナーの差し替え（原文も保存）</dd>
+          <dt>議事録・添付資料</dt><dd>バナー画像_6月.jpg を Dropbox へ保存しリンクを記録</dd>
+          <dt>対応期日</dt><dd>メッセージに記載があれば自動で読み取り</dd>
+          <dt>タスク状況</dt><dd>初期値「未対応」で登録（以降は担当者が更新）</dd>
+        </dl>
+      </div>
+    </div>
+
+    <p class="mock-caption" style="margin-top:34px;">「ありがとうございます」のような短い返信でも、前後の文脈から拾います</p>
+    <div class="chat">
+      <div class="chat-head">サロンH様<span class="count">3</span></div>
+      <div class="chat-body">
+        <div class="msg me">
+          <div class="b">サロンH様
+掲載文を修正し、下書き登録いたしました。
+ご確認のうえ、問題なければ反映いたします。</div>
+        </div>
+        <div class="msg">
+          <div class="nm">サロンH</div>
+          <div class="b">ありがとうございます！</div>
+        </div>
+        <div class="chat-sys"><span>記録用アカウントがこのグループに参加しています（メッセージには反応しません）</span></div>
+      </div>
+    </div>
+
+    <div class="extract">
+      <div class="ex-arrow"><span class="glyph">↓</span><strong>AI</strong>が直前のやり取りから「進行承認」と判断し、対応すべきタスクとして記録</div>
+      <div class="ex-card">
+        <div class="ex-ttl">単語ではなく文脈で判定。一言の御礼でも内容を補ってタスク化</div>
+        <dl>
+          <dt>タスク発生日</dt><dd>6/16 LINE</dd>
+          <dt>店舗名</dt><dd>サロンH様</dd>
+          <dt>メッセージ種別</dt><dd>回答・承認（進行承認）</dd>
+          <dt>作業内容</dt><dd>掲載文の修正を反映（お客様の承認済み）</dd>
+          <dt>タスク状況</dt><dd>「反映待ち」で記録（以降は担当者が更新）</dd>
+        </dl>
       </div>
     </div>
 
@@ -384,21 +745,21 @@
         <div class="s-num">1</div>
         <div>
           <h3>毎朝の通知を確認する</h3>
-          <p>未対応の依頼が緊急度順に整理されて社内LINEに届きます。その日に対応すべき案件が一目で把握できます。</p>
+          <p>対応が必要な依頼が、急ぎ・期限の近い順に整理されて社内LINEに届きます。その日に対応すべき案件が一目で把握できます。</p>
         </div>
       </div>
       <div class="step">
         <div class="s-num">2</div>
         <div>
-          <h3>対応後、一覧表で対応状況を更新する</h3>
-          <p>スプレッドシートの対応状況を変更すると行の色で進捗が分かり、翌朝の通知にも反映されます。</p>
+          <h3>対応後、一覧表でタスク状況(進捗)を更新する</h3>
+          <p>スプレッドシートのタスク状況を選ぶと、現在の運用どおり行が色分けされ、翌朝の通知にも反映されます。新しい操作は不要です。</p>
         </div>
       </div>
       <div class="step">
         <div class="s-num">3</div>
         <div>
           <h3>担当・補足を書き込む（必要に応じて）</h3>
-          <p>担当者名・対応指示や、後日届く音声指示のメモなどを同じ一覧表に追記し、一元管理できます。これらの手動入力欄をAIが上書きすることはありません。</p>
+          <p>担当者名・対応指示や、議事録・添付資料などを同じ一覧表に追記し、一元管理できます。これらの手動入力欄をAIが上書きすることはありません。</p>
         </div>
       </div>
     </div>
@@ -406,16 +767,18 @@
     <p class="mock-caption">毎朝の通知イメージ</p>
     <div class="line-mock">
       <p class="line-name">タスク管理</p>
-      <div class="line-bubble">本日のタスクサマリ(6/10 9:00)
+      <div class="line-bubble">本日のタスクサマリ(6/18 9:00頃)
 
-── 未対応 5件 ──
-<span class="badge high">急</span>サロンA|広告画像の差し替え(期限 6/12)
-<span class="badge mid">中</span>サロンB|クーポン内容の変更相談
-<span class="badge mid">中</span>サロンC|掲載文の修正依頼
-<span class="badge low">低</span>サロンD|次回打ち合わせ日程の相談
-<span class="badge low">低</span>サロンE|料金プランについて質問
+── 急ぎ・期限間近 2件 ──
+<span class="badge high">急ぎ</span>サロンB様|キャンペーン用バナーの当日修正(本日17:00)
+<span class="badge mid">期限</span>銀座整体院様|開始日変更の反映(6/30〜7/1)
 
-── 対応中 3件|昨日完了 4件 ──
+── 未対応・依頼中 3件 ──
+アース大槻様|インスタ投稿用画像の依頼(毎月希望)
+サロンC様|掲載文の修正依頼
+ガーデンウシワカマル様|看板画像の確認
+
+── お客様連絡待ち 2件|反映待ち 1件 ──
 詳細:タスク一覧表のリンク</div>
     </div>
 
@@ -423,35 +786,101 @@
       AIの判定に迷いがある場合は「念のためタスクに含める」設定とします。多めに拾い、不要なものを人が除外する運用のほうが、取りこぼしを確実に防げるためです。
     </div>
 
+    <p class="mock-caption">すぐに判断できないご依頼には、一次受けの定型文を自動でご用意</p>
+    <div class="chat" style="max-width:420px;">
+      <div class="chat-head">アース大槻様<span class="count">3</span></div>
+      <div class="chat-body">
+        <div class="msg">
+          <div class="nm">アース大槻 優貴様</div>
+          <div class="b">インスタ投稿用の画像、また新しいものを頂きたいです！できれば毎月頂けたら助かります</div>
+        </div>
+        <div class="msg me">
+          <div class="b">大槻様
+いつもお世話になっております。サイバーアクセル・アドバイザーズでございます。
+
+お忙しい中、ご連絡いただきありがとうございます。
+上記内容につきまして、かしこまりました。社内で確認して改めてご連絡させていただきます。
+
+何卒よろしくお願い致します。
+サイバーアクセル・アドバイザーズ</div>
+        </div>
+        <div class="chat-sys"><span>AIが一次受けの定型文を下書き。担当者が確認して送信し、同時にタスク化・グループ共有されます</span></div>
+      </div>
+    </div>
+
     <div class="point">
-      お客様への返信時は、過去のやり取りをもとにAIが用意した<strong>返信案</strong>を下書きとして参考にできます。送信はこれまでどおり担当者が行うため、文面の最終判断は人の手に残ります。
+      <strong>すぐに判断できないご依頼にも、まず一次受けの定型文ですばやく返信。</strong>現在グループで共有されている定型文を、AIがタスク一覧表の「返信提案」列に下書きとしてご用意します。送信はこれまでどおり担当者が行い、返信と同時にタスクとして記録されるため、「一旦返信したまま社内共有や対応が漏れる」ことを防ぎます。
+    </div>
+
+    <div class="point">
+      通常の返信時も、過去のやり取りをもとにAIが用意した<strong>返信案</strong>が同じ「返信提案」列に入ります。担当者はそれを確認・コピーして送信でき、文面の最終判断は常に人の手に残ります。
     </div>
   </section>
 
   <!-- 4. タスク一覧表 -->
   <section>
     <h2><span class="index">04</span>タスク一覧表（AIの自動入力＋手動管理の一元化）</h2>
-    <p>現在お使いのタスクシート（連絡日・店舗名・作業内容・担当者・対応状況・音声指示など）の項目をそのまま引き継ぎ、そこにAIの自動入力を重ねた一覧表です。列は<strong>「AIが自動で記入する欄」と「担当者が手動で管理する欄」に分かれており、AIが手動欄を上書きすることはありません。</strong></p>
-    <div style="overflow-x:auto; margin-top:20px;">
+    <p>現在お使いのタスクシート（対応期日・納品データ・担当者名・店舗名・作業内容・議事録/添付資料・タスク状況(進捗)・タスク発生日）の<strong>列構成をそのまま引き継ぎ</strong>、そこにAIが判別した<strong>「メッセージ種別」</strong>（新規依頼・回答や承認・質問など）と自動入力を重ねた一覧表です。各列は<strong>「AIが自動で記入する欄」と「担当者が記入・管理する欄」に分かれており、AIが手動欄を上書きすることはありません。</strong></p>
+    <div class="st-legend" style="margin-top:20px;">
+      <span class="lb">列の凡例：</span>
+      <span><span class="th-dot ai"></span>AIが自動で記入</span>
+      <span><span class="th-dot man"></span>担当者が記入・管理</span>
+    </div>
+    <div class="sheet">
+      <div class="sheet-bar"><span class="ico"></span>タスク一覧表<span class="src">Google スプレッドシート</span></div>
+      <div class="scroll">
       <table>
         <thead>
           <tr>
-            <th colspan="5" style="text-align:center; background:#eef7f0; color:var(--accent-dark); border-bottom:1px solid var(--hairline);">AIが自動で記入</th>
-            <th colspan="3" style="text-align:center; background:var(--bg-soft); color:var(--ink-soft); border-bottom:1px solid var(--hairline);">担当者が手動で管理</th>
-          </tr>
-          <tr>
-            <th>発生日</th><th>店舗名</th><th>種別</th><th>内容(AIによる要約)</th><th>緊急度</th>
-            <th>担当者</th><th>対応状況</th><th>音声指示メモ</th>
+            <th><span class="th-dot ai"></span>対応期日</th>
+            <th><span class="th-dot man"></span>納品データ</th>
+            <th><span class="th-dot man"></span>担当者名</th>
+            <th><span class="th-dot ai"></span>店舗名</th>
+            <th><span class="th-dot ai"></span>メッセージ種別</th>
+            <th><span class="th-dot ai"></span>作業内容</th>
+            <th><span class="th-dot ai"></span>議事録・添付資料</th>
+            <th><span class="th-dot man"></span>タスク状況(進捗)</th>
+            <th><span class="th-dot ai"></span>タスク発生日</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>6/9 LINE</td><td>サロンF</td><td>新規依頼</td><td>ホットペッパー掲載用バナーの差し替え</td><td><span class="badge high">急</span></td><td>田中</td><td>反映待ち</td><td>—</td></tr>
-          <tr><td>6/9 LINE</td><td>サロンG</td><td>質問・相談</td><td>次回キャンペーンの配信時期について相談したい</td><td><span class="badge mid">中</span></td><td>佐藤</td><td>未対応</td><td>—</td></tr>
-          <tr><td>6/10 LINE</td><td>サロンH</td><td>回答・承認</td><td>「下書き登録します」へのご返信＝進行承認。公開作業へ</td><td><span class="badge mid">中</span></td><td>田中</td><td>お客様連絡待ち</td><td>6/11 価格は据置で</td></tr>
+          <tr class="s-rush"><td>6/20(金)17:00</td><td>—</td><td>岩切</td><td>サロンB様</td><td>新規依頼</td><td>キャンペーン用バナーの当日修正</td><td>—</td><td>急ぎの対応</td><td>6/18 LINE</td></tr>
+          <tr class="s-todo"><td>—</td><td>—</td><td>—</td><td>アース大槻様</td><td>新規依頼</td><td>インスタ投稿用画像の依頼（毎月希望）</td><td>—</td><td>未対応</td><td>6/18 LINE</td></tr>
+          <tr class="s-req"><td>6/30〜7/1の間で更新</td><td>—</td><td>酒見・西田</td><td>銀座整体院様</td><td>新規依頼</td><td>開始日を7/1へ変更。更新後に完了連絡</td><td>—</td><td>依頼中</td><td>6/17 確認LINE</td></tr>
+          <tr class="s-cust"><td>—</td><td>—</td><td>西田</td><td>ガーデンウシワカマル様</td><td>質問・確認</td><td>看板画像の確認「こんな感じで大丈夫でしょうか」</td><td>看板画像.jpg（Dropbox）</td><td>お客様連絡待ち</td><td>6/17 LINE</td></tr>
+          <tr class="s-hanei"><td>—</td><td>修正版データ（Dropbox）</td><td>田中</td><td>サロンH様</td><td>回答・承認</td><td>掲載文の修正（下書き登録済み）</td><td>—</td><td>反映待ち</td><td>6/16 LINE</td></tr>
         </tbody>
       </table>
+      </div>
     </div>
-    <p style="margin-top:20px;">対応状況は現在の運用（行の色で進捗を管理）をそのまま踏襲し、<strong>未対応／依頼中／反映待ち／お客様連絡待ち／タスク完了済み</strong>などを選ぶと行が自動で色分けされます。このほか、期限・関連案件・<strong>返信提案</strong>・<strong>納品データ（Dropboxの共有リンク）</strong>の欄も備えます。元のメッセージ全文も別シートに自動保存され、やり取りの経緯確認にそのまま利用できます。</p>
+
+    <p class="mock-caption" style="margin-top:26px;">AIが加える列：返信提案（下書き）</p>
+    <div class="reply-col">
+      <div class="rc-head">タスク一覧表の右端に「返信提案」列を追加。各タスク行に返信の下書きが入ります（送信は担当者が確認のうえ実施）</div>
+      <div class="rc-row">
+        <div class="rc-task"><span class="rc-store">アース大槻様</span>インスタ投稿用画像の依頼（毎月希望）</div>
+        <div class="rc-draft">大槻様　いつもお世話になっております。お忙しい中ご連絡ありがとうございます。上記内容につきまして、社内で確認して改めてご連絡させていただきます。<span class="rc-tag">一次受け定型文</span></div>
+      </div>
+      <div class="rc-row">
+        <div class="rc-task"><span class="rc-store">サロンH様</span>掲載文の修正</div>
+        <div class="rc-draft">掲載文を修正し、下書き登録いたしました。ご確認のうえ、問題なければ反映いたします。<span class="rc-tag">返信案</span></div>
+      </div>
+    </div>
+
+    <p class="mock-caption" style="margin-top:26px;">対応状況（タスク状況）の色分け ── 現在の運用をそのまま踏襲します</p>
+    <div class="color-key">
+      <div class="ck-head">タスク状況(進捗) を選ぶと、行がこの色に自動で塗り分けられます</div>
+      <div class="ck-row"><span class="sw s-todo"></span><span class="ck-name">未対応</span><span class="ck-desc">着手前の案件</span></div>
+      <div class="ck-row"><span class="sw s-req"></span><span class="ck-name">依頼中</span><span class="ck-desc">対応を依頼し、返答・作業待ちの状態</span></div>
+      <div class="ck-row"><span class="sw s-uncheck"></span><span class="ck-name">作業完了・未チェック</span><span class="ck-desc">作業は完了、社内チェック前</span></div>
+      <div class="ck-row"><span class="sw s-chk"></span><span class="ck-name">チェック完了・残りお客様連絡</span><span class="ck-desc">チェック済み。あとはお客様へ連絡</span></div>
+      <div class="ck-row"><span class="sw s-done"></span><span class="ck-name">タスク完了済み</span><span class="ck-desc">すべて完了・クローズ</span></div>
+      <div class="ck-row"><span class="sw s-sato"></span><span class="ck-name">佐藤さん提出</span><span class="ck-desc">佐藤さんからの提出・確認待ち</span></div>
+      <div class="ck-row"><span class="sw s-rush"></span><span class="ck-name">急ぎの対応</span><span class="ck-desc">最優先。最左列に赤字で期限を記入</span></div>
+      <div class="ck-row"><span class="sw s-hanei"></span><span class="ck-name">反映待ち</span><span class="ck-desc">下書き登録後、連絡まで完了したもの</span></div>
+      <div class="ck-row"><span class="sw s-cust"></span><span class="ck-name">お客様連絡待ち</span><span class="ck-desc">お客様からの連絡待ち（届き次第対応）</span></div>
+    </div>
+    <p style="margin-top:22px;">対応状況の色分けは<strong>現在の9区分をそのまま再現</strong>し、これまでと同じ感覚で運用できます。AIは新規の依頼を初期値「未対応」で追加するだけで、以降の色（タスク状況）の更新は担当者が行います。お客様から受領した画像・ファイルは<strong>AIがDropboxへ自動保存し、共有リンクを「議事録・添付資料」列に記録</strong>します（「納品データ」列は、当社が制作・納品したデータを担当者が管理します）。元のメッセージ全文も別シートに自動保存され、やり取りの経緯確認にそのまま利用できます。</p>
   </section>
 
   <!-- 5. 導入計画 -->
@@ -488,7 +917,7 @@
       </thead>
       <tbody>
         <tr><td>LINE公式アカウント(通知配信)</td><td>月5,000円(税別)</td><td>社内グループ(約30名)への毎朝の通知に必要な有料プラン</td></tr>
-        <tr><td>AIによる分類(Gemini)</td><td>0円〜数百円/月</td><td>現在のメッセージ量であれば、概ね無料の範囲で運用可能</td></tr>
+        <tr><td>AIによる分類(Gemini)</td><td>数百円程度/月</td><td>顧客情報を含むため有料ティアで利用し、入力内容をAIの学習に使わせない設定とします</td></tr>
         <tr><td>一覧表・処理基盤(Google)</td><td>0円</td><td>無料の範囲で運用可能。サーバー等の追加機材は不要</td></tr>
         <tr><td>受領データの保存(Dropbox)</td><td>0円〜</td><td>現在お使いのDropboxを利用。本システムによる追加費用はなし(保存容量は現在のご契約に依存)</td></tr>
         <tr class="total-row"><td>合計</td><td>月5,000円(税別)程度</td><td></td></tr>
@@ -516,7 +945,7 @@
       <div class="caution">
         <div class="d">
           <strong>受領したデータはDropboxへ自動保存します</strong>
-          お客様から届いた画像・ファイル・データは自動でDropboxに保存し、共有リンクを一覧表に記録します。なお、文章の意味の読み取り(分類・要約)は引き続きテキストを対象とします。
+          お客様から届いた画像・ファイル・データは自動でDropboxに保存し、共有リンクを一覧表の「議事録・添付資料」列に記録します。なお、文章の意味の読み取り(分類・要約)は引き続きテキストを対象とします。
         </div>
       </div>
     </div>
@@ -532,6 +961,10 @@
           <dd>ありません。記録用アカウントはグループ内で一切発言しない設定とし、返信はすべて担当者が行います。</dd>
         </div>
         <div class="faq-item">
+          <dt>一次受けの定型文は、AIが自動で送るのですか。</dt>
+          <dd>いいえ。AIは現在お使いの定型文を下書きとして用意するだけで、送信は担当者が確認のうえ行います。返信と同時にタスクとして記録・共有される点が、これまでとの違いです。</dd>
+        </div>
+        <div class="faq-item">
           <dt>お客様にはどのように説明しますか。</dt>
           <dd>「対応漏れ防止のための管理用アカウント」としてご案内します(第5章にご案内文の例を記載)。お客様にとっても、対応がより早く確実になる取り組みです。</dd>
         </div>
@@ -545,11 +978,11 @@
         </div>
         <div class="faq-item">
           <dt>お客様から届いた画像やファイルはどう扱われますか。</dt>
-          <dd>自動でDropboxに保存し、その共有リンクを一覧表に記録します。受信後すぐに保存するため、データの取りこぼしを防げます。</dd>
+          <dd>自動でDropboxに保存し、その共有リンクを一覧表の「議事録・添付資料」列に記録します。受信後すぐに保存するため、データの取りこぼしを防げます。</dd>
         </div>
         <div class="faq-item">
           <dt>AIが入力した内容を、後から人が直せますか。</dt>
-          <dd>はい。担当者名・対応状況・対応指示・音声指示メモなどの手動欄は自由に記入でき、AIがこれらを上書きすることはありません。</dd>
+          <dd>はい。担当者名・タスク状況(進捗)・対応指示・議事録/添付資料などの手動欄は自由に記入でき、AIがこれらを上書きすることはありません。</dd>
         </div>
       </dl>
     </div>
@@ -558,12 +991,12 @@
   <!-- 9. 今後の拡張 -->
   <section>
     <h2><span class="index">09</span>今後の拡張(必要に応じて追加可能)</h2>
-    <p>受領データのDropbox保存・返信提案・担当者の手動管理は、最初の構築段階に含みます。さらに、ご要望に応じて以下を追加できます。</p>
+    <p>受領データのDropbox保存・一次受けの定型文／返信案の下書き・担当者の手動管理は、最初の構築段階に含みます。さらに、ご要望に応じて以下を追加できます。</p>
     <ul class="plain" style="margin-top:16px;">
       <li>対応が滞っている案件や期限間近の案件のみを再通知するリマインド機能</li>
       <li>サロン別の依頼件数・対応スピードをまとめた週次レポート</li>
       <li>サロンごとの担当者の自動割り当てと担当者別の通知（担当者の手動管理は対応済み）</li>
-      <li>返信案の自動送信（一次受けの定型文返信。当面は担当者による送信を維持）</li>
+      <li>定型文・返信案の自動送信（当面は担当者による確認・送信を維持）</li>
     </ul>
   </section>
 
