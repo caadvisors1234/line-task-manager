@@ -17,6 +17,7 @@
 | パス | 内容 |
 |---|---|
 | `docs/index.html` | 提案資料(GitHub Pages で公開・正本) |
+| `docs/setup.html` | 構築手順書(実装者向け・GitHub Pages で公開) |
 | `proposal.md` | 詳細な対策案・技術仕様 |
 | `implementation-plan.md` | 実装プラン(GAS構成・シート設計・セットアップ手順・テスト計画) |
 
