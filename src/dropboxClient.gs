@@ -33,6 +33,21 @@ function exchangeDropboxAuthCode(authCode) {
 }
 
 /**
+ * 認可コードをスクリプトプロパティ DROPBOX_AUTH_CODE 経由で渡してリフレッシュトークンを取得する
+ * (GASエディタは引数付き関数を直接実行できないため。セットアップ時のみ手動実行)。
+ * 手順: スクリプトプロパティ DROPBOX_AUTH_CODE に認可コードを登録 → 本関数を実行。
+ * 成功すると認可コードは使い捨てのため一時プロパティを削除する。
+ */
+function exchangeDropboxAuthCodeFromProp() {
+  const props = PropertiesService.getScriptProperties();
+  const code = props.getProperty('DROPBOX_AUTH_CODE');
+  if (!code) throw new Error('先にスクリプトプロパティ DROPBOX_AUTH_CODE に認可コードを登録してください');
+  exchangeDropboxAuthCode(code);
+  props.deleteProperty('DROPBOX_AUTH_CODE');
+  console.log('一時プロパティ DROPBOX_AUTH_CODE を削除しました');
+}
+
+/**
  * 短命アクセストークンを取得する(§6.2 手順4)。
  * リフレッシュトークンから再発行し、expires_inの90%の期間キャッシュする。
  * 認証エラーは「Dropbox認証エラー」を含むメッセージで投げる(最重要アラートの判定に使用。§4.2)。

@@ -142,6 +142,26 @@ function installTriggers() {
 }
 
 /**
+ * Bot自身のユーザーID(destination照合用。Uで始まる値)を公式API /v2/bot/info から
+ * 取得し、スクリプトプロパティ LINE_BOT_USER_ID へ保存する(§8.1)。
+ * 先に LINE_CHANNEL_ACCESS_TOKEN を登録してから、GASエディタで手動実行すること。
+ */
+function setupLineBotUserId() {
+  const response = fetchWithRetry_(CONFIG.LINE_API_BASE + '/v2/bot/info', {
+    headers: lineHeaders_()
+  }, 1);
+  if (response.getResponseCode() !== 200) {
+    throw new Error('bot/info取得失敗(先に ' + CONFIG.PROP.LINE_TOKEN +
+      ' を登録してください。HTTP ' + response.getResponseCode() + '): ' + response.getContentText());
+  }
+  const info = JSON.parse(response.getContentText());
+  PropertiesService.getScriptProperties().setProperty(CONFIG.PROP.BOT_USER_ID, info.userId);
+  console.log('LINE_BOT_USER_ID を保存しました: ' + info.userId +
+    '(basicId: ' + info.basicId + ' / displayName: ' + info.displayName + ')');
+  return info.userId;
+}
+
+/**
  * 設定漏れ検査(§8.4。GASエディタから手動実行)。
  * スクリプトプロパティ全件とシート構成を確認し、結果をログに出す。
  */
