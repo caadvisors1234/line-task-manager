@@ -498,7 +498,7 @@
           <div class="arch-arrow"><span class="glyph">↓</span><small>記録・起票</small></div>
           <div class="arch-box">
             <div class="arch-label">スプレッドシート(1ファイル)</div>
-            <p>タスク一覧・メッセージログ・顧客マスタ・設定・返信テンプレート(＋エラーログ)</p>
+            <p>使い方・タスク一覧・メッセージログ・顧客マスタ・設定・返信テンプレート(＋エラーログ)</p>
           </div>
           <div class="arch-return"><span class="glyph">↑</span><small>担当者がタスク状況・手動列を更新(Botは手動列を上書きしない)</small></div>
         </div>
@@ -654,7 +654,7 @@
             新規スプレッドシートを作成し、IDをスクリプトプロパティ <code>SPREADSHEET_ID</code> へ登録します。
           </div></div>
           <div class="mini-step"><div class="d">
-            GASエディタから <code>setupSpreadsheet()</code> を実行します。5シート(タスク一覧・メッセージログ・顧客マスタ・設定・返信テンプレート)＋エラーログシート、ヘッダー、タスク状況9区分のプルダウン、行色分けの条件付き書式、K〜R列の非表示化が自動生成されます。
+            GASエディタから <code>setupSpreadsheet()</code> を実行します。使い方シート(先頭タブ)＋5シート(タスク一覧・メッセージログ・顧客マスタ・設定・返信テンプレート)＋エラーログシート、ヘッダー(人が記入する列=緑/AIの列=墨色の色分け・説明メモ付き)、タスク状況10区分のプルダウン、行色分けの条件付き書式、K〜R列の非表示化が自動生成されます。
           </div></div>
           <div class="mini-step"><div class="d">
             設定シートに<strong>自社メンバーuserIDリスト</strong>(収集手順は 05 疎通確認の項番4)と<strong>一次受け定型文</strong>を登録し、返信テンプレートシートに既存のやり取りから初期5〜10パターンを登録します。
@@ -779,7 +779,7 @@
       </div></div>
       <div class="check"><div class="d">
         <strong><code>sendDailySummary()</code> の手動実行</strong>
-        <span class="expect">社内グループ(テスト時はテストグループ宛に設定変更)へサマリが届く</span>
+        <span class="expect">社内グループ(テスト時はテストグループ宛に設定変更)へFlex形式のサマリ(墨色ヘッダー帯＋「タスク一覧を開く」ボタン)が届く</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>通知先を本番の社内グループへ切り替え</strong>

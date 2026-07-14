@@ -27,6 +27,8 @@ const CONFIG = {
   TRANSCODING_MAX_RETRY: 3,
   // 変換待ちの遅延再取得を打ち切るまでの時間(これを超えたら未保存として管理者通知)
   TRANSCODING_MAX_AGE_HOURS: 24,
+  // Flexメッセージ(bubble)のJSONサイズ上限30KBに対する安全マージン(§4.4)
+  FLEX_SIZE_LIMIT_BYTES: 27 * 1024,
 
   GEMINI_MODEL: 'gemini-3.1-flash-lite',
   GEMINI_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/',
@@ -54,6 +56,7 @@ const CONFIG = {
 };
 
 const SHEET = {
+  GUIDE: '使い方',
   TASK: 'タスク一覧',
   LOG: 'メッセージログ',
   MASTER: '顧客マスタ',
