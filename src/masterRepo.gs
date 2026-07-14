@@ -25,22 +25,26 @@ function resolveSalonName_(groupId) {
 /** 新規グループを顧客マスタへ自動追加する(joinイベント・join漏れ検知時。§3.3) */
 function registerNewGroup_(groupId) {
   // サロン名の初期値としてLINEのグループ名を取得(取得失敗時は空欄のまま登録し、
-  // 従来どおり日次サマリの「サロン名未設定」警告で拾う)。書き込みは新規登録時の
-  // 1回のみで以後Botは再更新しないため、担当者の上書きが常に優先される
+  // 従来どおり日次サマリの「サロン名未設定」警告で拾う)。書き込みは空欄のときのみで
+  // 記入済みの値には触れないため、担当者の上書きが常に優先される
   const summary = fetchGroupSummary_(groupId);
   const groupName = (summary && summary.groupName) ? String(summary.groupName) : '';
   return withScriptLock_(function () {
+    const sheet = getSpreadsheet_().getSheetByName(SHEET.MASTER);
     const existing = resolveSalonName_(groupId);
     if (existing) {
       // Botの再参加時は「退出」を「有効」に戻す(「社内」等の手動設定は変えない)
       if (existing.state === STATUS.MASTER.LEFT) {
-        getSpreadsheet_().getSheetByName(SHEET.MASTER)
-          .getRange(existing.rowIndex, COL.MASTER.STATE).setValue(STATUS.MASTER.ACTIVE);
+        sheet.getRange(existing.rowIndex, COL.MASTER.STATE).setValue(STATUS.MASTER.ACTIVE);
         existing.state = STATUS.MASTER.ACTIVE;
+      }
+      // サロン名が空欄のままの既存行はグループ名で補記する(記入済みの値は上書きしない)
+      if (!existing.salonName && groupName) {
+        sheet.getRange(existing.rowIndex, COL.MASTER.SALON).setValue(asCellText_(groupName));
+        existing.salonName = groupName;
       }
       return existing; // 同時実行での二重登録防止
     }
-    const sheet = getSpreadsheet_().getSheetByName(SHEET.MASTER);
     // グループ名は外部入力のため asCellText_ で数式インジェクション・型変換を防止
     sheet.appendRow([groupId, asCellText_(groupName), STATUS.MASTER.ACTIVE, formatDateTime_(new Date()), '']);
     return { rowIndex: sheet.getLastRow(), salonName: groupName, state: STATUS.MASTER.ACTIVE };
