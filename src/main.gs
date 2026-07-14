@@ -71,8 +71,10 @@ function handleMessageEvent_(event) {
   const groupId = event.source.groupId;
 
   // a. サロン名引き当て(未登録ならjoin漏れとして自動登録)
-  const master = resolveSalonName_(groupId) || registerNewGroup_(groupId);
+  let master = resolveSalonName_(groupId) || registerNewGroup_(groupId);
   if (master.state === STATUS.MASTER.INTERNAL) return; // 社内グループはログ・分析の対象外(§3.3)
+  // サロン名が空欄のままの登録済みグループは、グループ名の取得を再試行して補記する(§3.3)
+  if (!master.salonName) master = registerNewGroup_(groupId);
 
   // b. 発言者区分と表示名
   const userId = event.source.userId || '';

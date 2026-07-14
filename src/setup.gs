@@ -396,6 +396,36 @@ function installTriggers() {
 }
 
 /**
+ * 顧客マスタのサロン名が空欄の行へ、LINEのグループ名を一括記入する(GASエディタから手動実行)。
+ * 記入済みの行・退出済みの行には触れない。取得失敗はログに出す(Botが参加中か確認)。
+ */
+function backfillSalonNames() {
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.MASTER);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    console.log('backfillSalonNames: 顧客マスタにデータがありません');
+    return;
+  }
+  const values = sheet.getRange(2, 1, lastRow - 1, COL.MASTER.LAST).getValues();
+  let filled = 0;
+  values.forEach(function (row, i) {
+    const groupId = String(row[COL.MASTER.GROUP_ID - 1] || '');
+    const salonName = String(row[COL.MASTER.SALON - 1] || '');
+    const state = String(row[COL.MASTER.STATE - 1] || '');
+    if (!groupId || salonName !== '' || state === STATUS.MASTER.LEFT) return;
+    const summary = fetchGroupSummary_(groupId);
+    if (summary && summary.groupName) {
+      sheet.getRange(i + 2, COL.MASTER.SALON).setValue(asCellText_(String(summary.groupName)));
+      console.log('[OK] ' + groupId + ' → ' + summary.groupName);
+      filled++;
+    } else {
+      console.log('[NG] ' + groupId + ' → グループ名を取得できません(Botが参加中か確認)');
+    }
+  });
+  console.log('backfillSalonNames: ' + filled + '件記入しました');
+}
+
+/**
  * Bot自身のユーザーID(destination照合用。Uで始まる値)を公式API /v2/bot/info から
  * 取得し、スクリプトプロパティ LINE_BOT_USER_ID へ保存する(§8.1)。
  * 先に LINE_CHANNEL_ACCESS_TOKEN を登録してから、GASエディタで手動実行すること。

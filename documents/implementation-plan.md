@@ -107,7 +107,7 @@
 | `taskRepo.gs` | タスク一覧シートの読み書き（Botが書ける列を限定） | `createTask_(task)` / `issueTaskId_()` / `getOpenTasksBySalon_(salonName)` / `getTasksForSummary_()` / `appendAttachmentLink_(taskId, url)` |
 | `masterRepo.gs` | 顧客マスタ・設定・返信テンプレートの読み取り | `resolveSalonName_(groupId)` / `registerNewGroup_(groupId)` / `getInternalUserIds_()` / `getSettings_()` / `getReplyTemplates_()` |
 | `notifier.gs` | 日次サマリ・管理者通知 | `sendDailySummary()`（日次トリガー） / `summarizeTasks_(tasks, options)` / `buildSummaryFlex_(tasks, options)` / `buildSummaryText_(tasks, options)`（フォールバック用） / `notifyAdmin_(message)` |
-| `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `checkConfiguration()`（設定漏れ検査） |
+| `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `checkConfiguration()`（設定漏れ検査） / `backfillSalonNames()`（サロン名空欄行への一括記入。§3.3） |
 | `utils.gs` | 共通処理 | `withScriptLock_(fn, timeoutMs)` / `fetchWithRetry_(url, params, maxRetry)` / `formatDateTime_(date)` / `logError_(context, error)` |
 | `test.gs` | 手動テスト用 | `test_simulateTextMessage()` / `test_simulateImageMessage()` / `test_runAnalysisOnFixture()` / `test_buildSummary()` / `test_buildSummaryFlex()` |
 
@@ -216,7 +216,7 @@
 | 列 | 項目 | 内容 |
 |---|---|---|
 | A | グループID | joinイベントで自動追加 |
-| B | サロン名 | **Bot参加時にLINEのグループ名を自動記入**（グループ概要API `/v2/bot/group/{groupId}/summary`。取得失敗時は空欄）。表記の変更は人が上書きする（書き込みは新規登録時の1回のみでBotは再更新しないため、上書きが常に優先）。空欄の間はログのC列が空欄になり、日次サマリで「未設定グループあり」と警告 |
+| B | サロン名 | **LINEのグループ名を自動記入**（グループ概要API `/v2/bot/group/{groupId}/summary`）。記入タイミングは (1)新規登録時 (2)空欄のままの登録済みグループからのメッセージ受信時・Bot再招待時（再試行）。**空欄の場合のみ書き込み、記入済みの値は上書きしない**ため、人の上書きが常に優先。既存の空欄行の一括記入は `backfillSalonNames()`（手動実行）。空欄の間はログのC列が空欄になり、日次サマリで「未設定グループあり」と警告 |
 | C | 状態 | `有効` / `退出`（leaveイベントで自動更新） / `社内`（社内通知・管理者・テスト用グループ。人が設定） |
 | D | Bot参加日 | 自動記録 |
 | E | 備考 | 自由記入（将来: 既定担当者の登録欄として拡張） |
@@ -281,7 +281,7 @@
 3. 各イベントについて `webhookEventId` をCacheService（TTL 6時間）で照合し、既処理なら破棄。メッセージイベントは `messageId` でもメッセージログを照合する二重チェック（CacheServiceの保持期間は保証されず早期削除があり得るため、永続側の照合を必ず併用する）。
 4. イベント種別で分岐:
    - `message`（グループ発のみ処理。1対1は対象外のため無視）:
-     a. 顧客マスタからサロン名を引き当て（未登録グループならjoin漏れとして自動登録）。状態が `社内` のグループはここで処理を終了する（§3.3）。
+     a. 顧客マスタからサロン名を引き当て（未登録グループならjoin漏れとして自動登録）。状態が `社内` のグループはここで処理を終了する（§3.3）。サロン名が空欄のままの登録済みグループは、グループ名の取得を再試行して補記する（記入済みの値は上書きしない。§3.3）。
      b. 発言者区分を判定（設定シートの自社メンバーuserIDリスト）、表示名を取得（失敗時「(取得不可)」で続行）。
      c. `image` / `file` / `video` / `audio` の場合、**この場で同期的に** `api-data.line.me` からコンテンツを取得しDropboxへ保存（§4.2）。テキストはこのステップをスキップし応答を早める。
      d. メッセージログへ1行追記（LockService保護下）。**お客様発言（テキスト・画像・ファイル・動画・音声）は `未分析`**、スタンプおよび自社発言は `分析対象外`（画像・ファイルも「資料送付」としての起票対象のため未分析に含める）。
