@@ -24,6 +24,11 @@ function resolveSalonName_(groupId) {
 
 /** 新規グループを顧客マスタへ自動追加する(joinイベント・join漏れ検知時。§3.3) */
 function registerNewGroup_(groupId) {
+  // サロン名の初期値としてLINEのグループ名を取得(取得失敗時は空欄のまま登録し、
+  // 従来どおり日次サマリの「サロン名未設定」警告で拾う)。書き込みは新規登録時の
+  // 1回のみで以後Botは再更新しないため、担当者の上書きが常に優先される
+  const summary = fetchGroupSummary_(groupId);
+  const groupName = (summary && summary.groupName) ? String(summary.groupName) : '';
   return withScriptLock_(function () {
     const existing = resolveSalonName_(groupId);
     if (existing) {
@@ -36,8 +41,9 @@ function registerNewGroup_(groupId) {
       return existing; // 同時実行での二重登録防止
     }
     const sheet = getSpreadsheet_().getSheetByName(SHEET.MASTER);
-    sheet.appendRow([groupId, '', STATUS.MASTER.ACTIVE, formatDateTime_(new Date()), '']);
-    return { rowIndex: sheet.getLastRow(), salonName: '', state: STATUS.MASTER.ACTIVE };
+    // グループ名は外部入力のため asCellText_ で数式インジェクション・型変換を防止
+    sheet.appendRow([groupId, asCellText_(groupName), STATUS.MASTER.ACTIVE, formatDateTime_(new Date()), '']);
+    return { rowIndex: sheet.getLastRow(), salonName: groupName, state: STATUS.MASTER.ACTIVE };
   });
 }
 

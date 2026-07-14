@@ -240,6 +240,12 @@ function test_buildSummaryFlex() {
   const emptyTexts = collectFlexTexts_(empty.contents);
   assert_('0件時も「なし」表示で同構造のbubbleが生成される',
     empty.contents.type === 'bubble' && emptyTexts.indexOf('なし') !== -1 && emptyTexts.indexOf('0件') !== -1);
+
+  // 外部ブラウザで開くためのパラメータ付与(LINE内ブラウザのGoogle未ログイン対策)
+  assert_('外部ブラウザ用パラメータの付与',
+    externalBrowserUrl_('https://docs.google.com/spreadsheets/d/x/edit') ===
+      'https://docs.google.com/spreadsheets/d/x/edit?openExternalBrowser=1' &&
+    externalBrowserUrl_('https://example.com/?a=1') === 'https://example.com/?a=1&openExternalBrowser=1');
 }
 
 // ---------------------------------------------------------------------------
