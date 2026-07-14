@@ -9,6 +9,133 @@ const TEST_GROUP_PREFIX = 'Ctest';
 const TEST_CUSTOMER_USER_ID = 'Utestcustomer00000000000000000001';
 const TEST_INTERNAL_USER_ID = 'Utestinternal00000000000000000001';
 
+// 画像分析テスト用のフィクスチャPNG(360x140。「TEST COUPON / 20% OFF CUT + COLOR /
+// valid until 2026-08-31」と描画済み。Geminiが内容を読み取れたかの目視確認に使う)
+const TEST_IMAGE_PNG_BASE64 =
+  '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';
+
+// 上記クーポンのJPEG版(360x140)。LINEの画像メッセージはJPEG固定(analysisImageMime_)のため、
+// msgType='image' の経路には実体もJPEGのこちらを使う(PNG版は file+.png 拡張子の経路用)
+const TEST_IMAGE_JPEG_BASE64 =
+  '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABcQERQRDhcUEhQaGBcbIjklIh8fIkYyNSk5UkhXVVFIUE5bZoNvW2F8Yk5QcptzfIeL' +
+  'kpSSWG2grJ+OqoOPko3/2wBDARgaGiIeIkMlJUONXlBejY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2N' +
+  'jY2NjY2NjY3/wAARCACMAWgDASIAAhEBAxEB/8QAGgABAQEBAQEBAAAAAAAAAAAAAAQFAwIBBv/EAEQQAAEDAgIGBwYEBQEHBQAA' +
+  'AAEAAgMEEQUSFSExU6LREyU1QYGx8AYUIlFhcSMyocFzgpGSstIkMzZSdOHxNEJDVXL/xAAXAQEBAQEAAAAAAAAAAAAAAAAAAQID' +
+  '/8QAKxEBAAEBBAoCAwEBAAAAAAAAAAERAgMSYRMhIiMxMmJxkaFCQ0GBwVHh/9oADAMBAAIRAxEAPwD9TLKyGMySHK0bTZT6To99' +
+  'wnkmKdnS+HmFPQUNNNRRySR5nG9zmPzKzMzWkOFu3bx4LFOFdajSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0n' +
+  'R77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI8' +
+  '02jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hP' +
+  'JNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5' +
+  'ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe' +
+  '54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdH' +
+  'vuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzT' +
+  'RlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k' +
+  '0nR77hPJNGUe54jzTRlHueI802jf5ezSdHvuE8k0nR77hPJNGUe54jzU9fQ00NFJJHHlcLWOY/MJtM2pvrMTM09tCKVk0YkjOZp2' +
+  'GyKfC+zovHzKKxwd7E4rMTJinZ0vh5hML7Oi8fMpinZ0vh5hML7Oi8fMqfJy+/8AX9Voi5VTpm00jqZjXzAfA12wlad3VFgTV+Pw' +
+  'QvlloqdrGC7je9h/cvNNieO1cDZoKOnfG69je3m5B+hRZdRXV1Lgj6qohiZUtI+Da2xcB3H5fVSxV+PzRMljoadzHgOab7Qf5kG8' +
+  'ixG1XtCXDNQ04bfX8Q/1LTr62KgpXTzXsNQA2uPyQUIsJuI43O0SwYdGIjrAeddv6jyVOGYwKyd1NUQmnqW7WHvQaiLJqqjG2VMj' +
+  'aWjgfCD8DnEXI/uULMYxqSsfSMpKczsF3N+Q1d+a3eEH6RFmYfPi8lTlrqWGKHKfiYdd/wC4rTQEWfimLRYdlYGGWd/5Y2/uovf8' +
+  'dt0mjY8m21/i8/2QbqKDC8VixFjgGmKZn543bQveJ4nDhsIfLdznfkYNrkFiLBbiOOTN6SHDoxGdYDzr/UjyXegxzpqr3StgNNUH' +
+  'UAdhP7INdFm47iM2G0scsDWOc5+U5wSLWPyK0Wm7QfmEH1FmY7iU2G08ckDWOLn5TnBPd9Cu+LVclDhslREGl7bWDhq1kBBYiwIq' +
+  '/H54mSx0VO5jxdpva4/uXuHGqunq44MVpWw9IbNe3Z5nzQbiLnUVEVLA+aZ2VjRclYjcZxKtJdh1ADEDYOkO39QEG+iwm47U0kzY' +
+  '8VozCHbHs2f9/wCq1K2qMGHS1MOV+VmZt9YKClFkYHjLsS6SOdrGTN1gNuAW+K0K2Z1NQzzMALo2FwB2XAQd0UmFVT63DYqiUND3' +
+  '3uGjVqJH7KtAREQEREBERAUmKdnS+HmFWpMU7Ol8PMKTwc73ktdjC+zovHzKJhfZ0Xj5lEjgXXJZ7GKdnS+HmEwvs6Lx8ymKdnS+' +
+  'HmEwvs6Lx8yp8mPv/X9VoiLTukxbsmq/hO8lN7N9iQfd3+RVOLdk1X8J3kpvZvsSD7u/yKD77R9hz/dv+QXCgxzDocPp4pKjK9kb' +
+  'WuGR2ogfZd/aPsOf7t/yC+4bQUb8NpnvpIHOdE0kmMEk2+yD3DjeH1EzYoqjM95s0ZHC5/opfaeCWWijkiYXiJ+ZzQL6vmtFlDRx' +
+  'vD46WBrhrDmxgELhiOKDD6mmjfFmZO6xfmtl1j6fVBPTe0lBM0dI50Lu8OGr+oXdtLR1lfHiMM2eSMZfw3Ag7dv9V2nw2iqbmamj' +
+  'cTtdlsf6hYc1I3B8do/c3uDZ3BrmE31Xt/TX+iD9MsCi/wCMKz+H/pW+sCi/4wrP4f8ApQb6IiD89gzRW47XVcnxGN2Vl+7WQP0H' +
+  '6r9Cvz+DOFHjlfSSfCZHZmX79ZPkV+gQRtwyBmJmuY57ZXCzmgjKf0WSxoxD2sl6X4o6ZvwtOy4t+5JV0eJyz466ihax0EbbyPsb' +
+  '3+9/nYKKJwoPa2US/Cypb8JPzNj5ghB+hWH7U07XUTKpuqWJ4s4bbH/vZbiw/aif/ZYqNnxSzPFmjbb/AM2QcPaKUz4FRzHbI5rj' +
+  '4tK/RM/I37BYHtFTGLAaeMa+hcxp/tIW5TSNmpopGG7XsBH9EGJ7Xf8AoYP4n7FV+0fYc/8AL/kFJ7VESMpKduuR8mofp+6s9o+w' +
+  '5/u3/IIGGV9HHhlMx9XA1zY2ggyAEalm+0FVBiDqako3tmlMm1msDu2+tiqw/A8Onw+nlkp8z3xguOdwubfdaFLhlHRPz08DWO/5' +
+  'rkn+pQZXtGXT1dDQBxDZHgu/rYfut6ONkUbY42hrGiwA7gsH2jBp62hrrEsjfZ3gb81vMe2RjXscHNcLgjvCCfE6ZlXh80TwD8JL' +
+  'T8iNhWJQTOl9kalrjfog5g+2o/utrFaptJh00rjY5S1o+ZOxY9HTug9kaguFjK1z7fTUB5IODaeSDCKHFKUfiwA5x/zNuVtVlRHV' +
+  '4BPPEbsfC4j6ati+YE0OwOna4AgtIIPfrKx5nHCPfcPkJ93njc6Bx7jbZ+3/AJQa/s72HTfzf5FaSzfZ3sOm/m/yK0kBERAREQER' +
+  'EBSYp2dL4eYVakxTs6Xw8wpPBzveS12ML7Oi8fMomF9nRePmUSOBdclnsYp2dL4eYTC+zovHzKYp2dL4eYTC+zovHzKnyY+/9f1W' +
+  'iItO7jVwe9UksGbL0jS3Na9rrnhtH7hQspuk6TJf4rWvc32KpEEuJUfv9DJTdJ0ee3xWvaxvs8FmMwCsYwMZjM7WtFgACAB/ct1E' +
+  'GHoOu/8Auqji/wBS0sQoIcRpjDNca7tcNrSqkQYTMNxunb0dPiMZjGoZxrt4g+a70ODGGqFXW1DqmoGwnY1ayICz4cM6HGJq/pr9' +
+  'K3Lky7Nnff6LQRAREQZ2KYRHiBbK15hqGflkb+6j0fjjm9G/EmCPZcD4vL91uogiwzDIcNhLYyXPdre87XJieGQ4lEGy3a9v5Hja' +
+  'FaiDCbh+ORDo4sSjcwagXjX+oPmqMPwUU9T71VzOqanuc7Y1aqIOdRBHUwPhmbmY8WIWIzCMUogY6DEGiG+psg2foVvogx6HBXsr' +
+  'BWV9Qaicfl+TVdiVH7/QyU3SdHnt8Vr2sb7PBVIg5UkHu1JFBmzdGwNzWtey6oiDlU08VXA6GduZjhrCxm4PidFduH4gBF3NkGz9' +
+  'Ct5EGJHgdRUzNlxarM4brEbdTfXgtSrphU0UlMHdGHtyggXt4LuiCegpfcqKKnz58gtmta+u+xccVwyPE6cRudke03a+17fNXIgm' +
+  'w6k9xoY6bP0mS/xWte5J2eKpREBERAREQEREBSYp2dL4eYVakxTs6Xw8wpPBzveS12ML7Oi8fMomF9nRePmUSOBdclnsYp2dL4eY' +
+  'TC+zovHzKYp2dL4eYTC+zovHzKnyY+/9f1WiL48uEbiwXcAbD5lad31FmzMnpqcVDqmTpRYlhPwk/Ky6kSVdTIwSvijiAHwGxJOt' +
+  'SrlpPxTWtRZwqZWwZHSBr2ymMyuGoD5rrBUvMLwXNlcH5GPAsHmyVIvbMrEXxoIaATmIGs/NcayZ0MQ6MAyPcGNv8yq6TNIrLuij' +
+  '9zmDcwrJek+p+G/2XKapfJhmcuMcgeGuLTaxvrUq5zeU4w0UUDIoC8BuISuN9Q6YG68HLJV1AmrJIQ1wygS5RsUqmkp+PbSRcKVj' +
+  'GsJjnfMCdrn5rLutOsTWKiKL8WsmlAlfFFG7IMhsSe/WvcbJ4HPY57pIspIe462n5KVYi3X8alSKegc59FE5zi4kayTdcYI3VImD' +
+  'p5m5Z3AZH21atSVMeqKRxXIs2mp3TOmDqqpGSQtFpO5aSRNVsWptRWgi89I3pejv8eXNb6L0q2IovxayaUCV8UUbsgyGxJ79a9ME' +
+  '1K5/SPdLAGFwc46wR3fVSrnjy1K0UMUE1TGJpaiRheLtbGbADuXqGSVjp6eV+ZzG5mv2EhKkXn+xxWIuFE5z6OJziXEt1klcpHS1' +
+  'NU6COQxxxgZ3N2knuSq49UT/AKsRQyCWicyQTPliLg17ZDci/eCksbp8RdH00sbRGDZjra7pVnSfimtcihaH09dFE2eSVsgOZrzc' +
+  'i3erkiW7NrEIiKtCIiAiIgIiICkxTs6Xw8wq1JinZ0vh5hSeDne8lrsYX2dF4+ZRML7Oi8fMokcC65LPYxTs6Xw8wmF9nRePmUxT' +
+  's6Xw8wmF9nRePmVPkx9/6/qteJpBFC+Q68oJXtFp3llRVNI5zZqqfPLtAynKz7Cy79M2kq5jLcRy2c1wF9dtiuRZo4xdzH59f9S0' +
+  'ceeKV8rNUzy7K4d3ddeZA7opJIGgCMFsYaP6kBWIrRrBqohoZM0zhHLJLFluTJ3O+S610b3xMfGMz4nh4b87dypRKaqEWNnDKPSU' +
+  'JbZoeZN3lN7rhNC6LC7SD43yBzh9SVpolEm7m1zS5tpoGuDmwxgjYQ0KWCGKWsqukjY+zhbM0HuVyJRqbETR5YxkbcsbGtHyaLL0' +
+  'iKtoGSihmmbOHCN7y9rwLjXtC6RTPqpnFl204ba5FsxVaKUc4sTGqupnU1XHSwCCoDmyMuLZSc32VFAxzYXve0tMjy+x7rqlEiCz' +
+  'YmKVngkofzVP8ZyqeHFjg12VxGp1r2X1EhqzZpFGb0NT7/l97+Por5ujGy+yy0WBwY0OdmcBrda119RIiiWbEWUDJRQzTNnDhG95' +
+  'e14Fxr2heg99a6QMu2nLC25FsxPerUSjOCeFdSGGtZBE2KpDo5GDLbKTe3yX2IOlfPUuaWNczKwHbb5q1EoRYnVEzwZ1HiFLFSRs' +
+  'fLZzW2IynkvZlFNVPmcHGCcA5gL5SB3q5EoRYtUiK8EEsza/JDAHOZmBe8iwAHcktPFUYm5szcwEQI1kd6vRKE3debWgEMdHXwdC' +
+  'MjZQ5rhe+zYr0RIijVmzFmtBERVsREQEREBERAUmKdnS+HmFWpMU7Ol8PMKTwc73ktdjC+zovHzKJhfZ0Xj5lEjgXXJZ7GKdnS+H' +
+  'mEwvs6Lx8ymKdnS+HmEwvs6Lx8yp8mPv/X9Voi51MInppIj/AO5pC07uiLLbIauGihO0nNJ/Ltv4rxUMjqKiYxwTTvabF5kytYR3' +
+  'BBpyTtjmijIN5SQLfQXX2KTpYw/I9l76nixWdC90mjHvJLjmuT3/AArjTt94jpaVziI3GRzgDbNZxsEGt0zfeegsc2TPfutey6LP' +
+  'p4G02KuZGTk6C4BN8vxbF0xL8tP/ANQzzQWIo5+1KT/8v8goYqNkmFPne55kYHuYQ4jLYnYg1zKwStiLvjcCQLdwXN9W1g+OOQfi' +
+  'CMXG0nvH0UIgjmxCklkbd74s5NztFrFeXf8Ayf8AXD9kGuSACSbAKIYpAXC7ZRGTYSllmnxVj2tfG5jxdrgQfss2ZxrIfdKOP8EW' +
+  'a6U/lAHy+aCqorY6eQR5ZJHkXyxtuQPmvvvsHuvvOf8AD+2u/wArfNcqMD36sv8AmDmjwtqXKnEDW1T57COKpLwSdhQUQV8c0vRF' +
+  'kkTyLgSNtcfReZcTgjkc3LK4MNnva27Wn6lc29LWVUdQYjHDCCWZvzPJHy7gpqRlWcMEsckYYA49G5l8+29yg2GkOaHNNwRcFT1F' +
+  'bHTyCPLJI8i+WNtyB81zZXBsUOWlnIcwEdGy7W/RKTXX1pP5szR4WQdTWwe6+8Zvw/trv8rfNfKeujnl6LJJG+1w2RtiR9FnP/3c' +
+  '7GAl5q/wrbA7ku7DUNxKF1aGElrhGY9l++90GkSGgkmwGslRsxSBzmgslaxxs2RzLNPivTaqOpZIyaCaKPKcxlblFvvdT4iJmRN+' +
+  'FhomFpIafisEF1TUR0sJklOodw2n7LqoMXijdQSyljS8NFnEaxr+avGwICIiAiIgIiICIiAiIgIiICIiApMU7Ol8PMKtSYp2dL4e' +
+  'YUng53vJa7GF9nRePmUTC+zovHzKJHAuuSz2MU7Ol8PMJhfZ0Xj5lMU7Ol8PMJhfZ0Xj5lT5Mff+v6rREWndLT0TYKqWcOv0mxtv' +
+  'y95/VeNHu6STLUvbDI4udGANZO3WrUQRw0Bi93BmLhA5xF29xFrLzo61PExkxbLE4lsgGy52WVyIJaejdFUmd8xle5mVxIt3/oul' +
+  'VTiphyFxYQQ5rh3ELsiCOKhe2pjnlqHSvaCDdtgQfJe46TJQOps98wcM1vnfu8VSiCQ0bs9M9kxa6FuU/DfMNV/tsXw0N834m2cT' +
+  'fl/RWIg8TxmWB8YdlL2kZrXso2UVZGxrGV9mtFgOgar0QSTUb3zdNBUOhkcMryGgh3gvEmHXpo4YpiwsfnLnNzFx+quRBLDBVsla' +
+  '6Wt6Rg2t6IC/iuTsNcM0cdU+OB5JMYA79oB7leiD4xjY2NYwWa0WA+ilno3vnM0E7oHuFnWaCHKtEEhw+P3VsIe4Oa7OJO/N80ho' +
+  '3tnbNUVDp3MBDPhDQLqtEHmSNssbo3i7XCxUQw6RzWxTVb5IG2/DygXt3Eq9EHGrg95pXw5suYbbXtrXYbERAREQEREBERAREQER' +
+  'EBERAREQFJinZ0vh5hVqTFOzpfDzCk8HO95LXYwvs6Lx8yiYX2dF4+ZRI4F1yWez3XxPmopI4xmcbWF/qFnRRYrDGI4xlaNgu1bK' +
+  'KTFdaW7qLVrFWY7Mnrf1kTrf1kWsiYc2dB1T5ZPW/rInW/rItZEw5mg6p8snrf1kTrf1kWsiYczQdU+WT1v6yJ1v6yLWRMOZoOqf' +
+  'LJ639ZE639ZFrImHM0HVPlk9b+sidb+si1kTDmaDqnyyet/WROt/WRayJhzNB1T5ZPW/rInW/rItZEw5mg6p8snrf1kTrf1kWsiY' +
+  'czQdU+WT1v6yJ1v6yLWRMOZoOqfLJ639ZE639ZFrImHM0HVPlk9b+sidb+si1kTDmaDqnyyet/WROt/WRayJhzNB1T5ZPW/rInW/' +
+  'rItZEw5mg6p8snrf1kTrf1kWsiYczQdU+WT1v6yJ1v6yLWRMOZoOqfLJ639ZE639ZFrImHM0HVPlk9b+sidb+si1kTDmaDqnyyet' +
+  '/WROt/WRayJhzNB1T5ZPW/rInW/rItZEw5mg6p8snrf1kXiWLFZozHIMzTtF2rZRMOaTcV1TanynoInw0UccgyuF7i/1KKhFp3sx' +
+  'hiIh/9k=';
+
 /** テスト用グループを顧客マスタへ登録し、サロン名を記入する */
 function ensureTestGroup_(groupSuffix, salonName) {
   const groupId = TEST_GROUP_PREFIX + groupSuffix;
@@ -357,24 +484,31 @@ function test_simulateImageMessage() {
 // P6: 分析バッチ(Gemini実API。GEMINI_API_KEYが必要。LINE・Dropbox不要)
 // ---------------------------------------------------------------------------
 
-/** フィクスチャ会話をログへ直接投入する(doPost・LINEを経由しない) */
-function insertFixtureLog_(groupId, salonName, speakerType, text) {
+/**
+ * フィクスチャ会話をログへ直接投入する(doPost・LINEを経由しない)。
+ * overrides(省略可): recordへ上書きマージする項目({ msgType: 'image', dropboxLink: url } 等)。
+ */
+function insertFixtureLog_(groupId, salonName, speakerType, text, overrides) {
   const messageId = 'testmsg' + Utilities.getUuid().replace(/-/g, '');
+  const record = {
+    receivedAt: formatDateTime_(new Date()),
+    groupId: groupId,
+    salonName: salonName,
+    speakerType: speakerType,
+    userId: speakerType === SPEAKER.INTERNAL ? TEST_INTERNAL_USER_ID : TEST_CUSTOMER_USER_ID,
+    displayName: speakerType === SPEAKER.INTERNAL ? 'テスト自社' : 'テスト顧客',
+    msgType: 'text',
+    body: text,
+    messageId: messageId,
+    webhookEventId: 'testevt' + Utilities.getUuid().replace(/-/g, ''),
+    dropboxLink: '',
+    analysisStatus: speakerType === SPEAKER.INTERNAL ? STATUS.ANALYSIS.SKIP : STATUS.ANALYSIS.PENDING
+  };
+  if (overrides) {
+    Object.keys(overrides).forEach(function (key) { record[key] = overrides[key]; });
+  }
   withScriptLock_(function () {
-    appendMessageLog_({
-      receivedAt: formatDateTime_(new Date()),
-      groupId: groupId,
-      salonName: salonName,
-      speakerType: speakerType,
-      userId: speakerType === SPEAKER.INTERNAL ? TEST_INTERNAL_USER_ID : TEST_CUSTOMER_USER_ID,
-      displayName: speakerType === SPEAKER.INTERNAL ? 'テスト自社' : 'テスト顧客',
-      msgType: 'text',
-      body: text,
-      messageId: messageId,
-      webhookEventId: 'testevt' + Utilities.getUuid().replace(/-/g, ''),
-      dropboxLink: '',
-      analysisStatus: speakerType === SPEAKER.INTERNAL ? STATUS.ANALYSIS.SKIP : STATUS.ANALYSIS.PENDING
-    });
+    appendMessageLog_(record);
   });
   return messageId;
 }
@@ -528,4 +662,141 @@ function test_uploadFixtureToDropbox() {
   console.log('2回目(409経路): ' + url2);
 
   assert_('同一パスの共有リンクが一致する(冪等)', url1 === url2);
+}
+
+// ---------------------------------------------------------------------------
+// 画像マルチモーダル分析(§4.3・§5.1。test_downloadSharedLinkFile / test_collectAnalysisImages は
+// Dropboxのみ、test_runAnalysisOnImageFixture は Dropbox+Gemini が必要)
+// ---------------------------------------------------------------------------
+
+/** フィクスチャ画像をDropboxへアップロードし共有リンクを返す(固定タイムスタンプで冪等) */
+function uploadTestImageFixture_(base64Data, extension, mime) {
+  const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mime);
+  const path = buildDropboxPath_('テストサロン様', 'Ctestdropbox', 1767225600000, 'testimagefixture', extension);
+  uploadToDropbox_(blob, path);
+  return getOrCreateSharedLink_(path);
+}
+
+/** 共有リンク経由のダウンロードが元データを完全復元することを確認する(合意事項1の裏取り) */
+function test_downloadSharedLinkFile() {
+  const url = uploadTestImageFixture_(TEST_IMAGE_PNG_BASE64, '.png', 'image/png');
+  console.log('共有リンク: ' + url);
+  const bytes = downloadSharedLinkFile_(url).getBytes();
+  assert_('共有リンク経由のダウンロードが元データと一致する',
+    Utilities.base64Encode(bytes) === TEST_IMAGE_PNG_BASE64,
+    'バイト数=' + bytes.length);
+}
+
+/** 画像収集の判定・枚数上限・フォールバックを確認する(Gemini不要) */
+function test_collectAnalysisImages() {
+  // 対象判定(ネットワーク不要)
+  assert_('image はjpeg固定', analysisImageMime_({ msgType: 'image', body: '' }) === 'image/jpeg');
+  assert_('file の大文字PNG拡張子', analysisImageMime_({ msgType: 'file', body: 'レポート.PNG' }) === 'image/png');
+  assert_('file のPDFは対象外', analysisImageMime_({ msgType: 'file', body: '資料.pdf' }) === null);
+  assert_('拡張子なしの file は対象外', analysisImageMime_({ msgType: 'file', body: 'ファイル名' }) === null);
+  assert_('text は対象外', analysisImageMime_({ msgType: 'text', body: '画像.png' }) === null);
+
+  const jpegUrl = uploadTestImageFixture_(TEST_IMAGE_JPEG_BASE64, '.jpg', 'image/jpeg');
+  const pngUrl = uploadTestImageFixture_(TEST_IMAGE_PNG_BASE64, '.png', 'image/png');
+  const badUrl = 'https://www.dropbox.com/scl/fi/notfound0000000000000/none.png?rlkey=none&dl=0';
+  const images = collectAnalysisImages_([
+    { messageId: 'img1', msgType: 'image', body: '', dropboxLink: jpegUrl },
+    { messageId: 'img2', msgType: 'image', body: '', dropboxLink: jpegUrl },
+    { messageId: 'img3', msgType: 'image', body: '', dropboxLink: badUrl }, // 実在しないリンク
+    { messageId: 'file4', msgType: 'file', body: 'クーポン案.png', dropboxLink: pngUrl },
+    { messageId: 'img5', msgType: 'image', body: '', dropboxLink: jpegUrl }, // 4枚目=枚数上限超過
+    { messageId: 'img6', msgType: 'image', body: '', dropboxLink: CONTENT_NOTE.SKIPPED }, // 未保存マーカー
+    { messageId: 'text7', msgType: 'text', body: 'テキスト', dropboxLink: '' }
+  ]);
+
+  assert_('上限3枚まで会話順に添付され連番が振られる',
+    images.attachedIndex.img1 === 1 && images.attachedIndex.img2 === 2 && images.attachedIndex.file4 === 3,
+    JSON.stringify(images.attachedIndex));
+  assert_('parts数=添付3枚×(ラベル+inline_data)', images.parts.length === 6);
+  assert_('inline_dataのMIMEタイプ(image=jpeg固定・file=拡張子準拠)と中身',
+    images.parts[1].inline_data.mime_type === 'image/jpeg' &&
+    images.parts[5].inline_data.mime_type === 'image/png' &&
+    images.parts[1].inline_data.data === TEST_IMAGE_JPEG_BASE64 &&
+    images.parts[5].inline_data.data === TEST_IMAGE_PNG_BASE64);
+  assert_('実在しないリンクは例外を投げずフォールバック', images.fallback.img3 === true);
+  assert_('枚数上限超過分はフォールバック', images.fallback.img5 === true && !images.attachedIndex.img5);
+  assert_('未保存マーカー行はダウンロードせずフォールバック', images.fallback.img6 === true);
+  assert_('画像でない行はどちらにも載らない', !images.fallback.text7 && !images.attachedIndex.text7);
+}
+
+/**
+ * 画像つき分析の結合テスト(S5拡張のフィクスチャ版)。
+ * image経路・file画像拡張子経路・取得失敗フォールバックの3グループを投入し、
+ * 分析完了とタスク起票を検証する。summaryへの画像内容の反映は console 出力を目視確認する。
+ */
+function test_runAnalysisOnImageFixture() {
+  const cleared = clearPendingAnalysisRows_();
+  if (cleared > 0) console.log('前処理: 過去テストの未分析 ' + cleared + ' 行を分析対象外にしました');
+
+  // 画像メッセージ経路はMIME宣言(image/jpeg固定)と実体を一致させるためJPEG版を使う
+  const jpegUrl = uploadTestImageFixture_(TEST_IMAGE_JPEG_BASE64, '.jpg', 'image/jpeg');
+  const pngUrl = uploadTestImageFixture_(TEST_IMAGE_PNG_BASE64, '.png', 'image/png');
+
+  // SI1: 画像メッセージ単独の送付(資料送付・新規依頼として画像の中身から起票判断)
+  const g1 = ensureTestGroup_('fiximg100000000000000000000001', 'テストサロン画像1様');
+  const i1 = insertFixtureLog_(g1, 'テストサロン画像1様', SPEAKER.CUSTOMER, '',
+    { msgType: 'image', dropboxLink: jpegUrl });
+
+  // SI2: 画像をファイルとして送付(file+画像拡張子の経路)
+  const g2 = ensureTestGroup_('fiximg200000000000000000000001', 'テストサロン画像2様');
+  const i2 = insertFixtureLog_(g2, 'テストサロン画像2様', SPEAKER.CUSTOMER, 'クーポン案.png',
+    { msgType: 'file', dropboxLink: pngUrl });
+
+  // SI3: 共有リンクが実在しない(取得失敗→メタ情報のみで分析続行の確認)
+  const g3 = ensureTestGroup_('fiximg300000000000000000000001', 'テストサロン画像3様');
+  const i3 = insertFixtureLog_(g3, 'テストサロン画像3様', SPEAKER.CUSTOMER, '',
+    { msgType: 'image', dropboxLink: 'https://www.dropbox.com/scl/fi/notfound0000000000000/none.png?rlkey=none&dl=0' });
+
+  const errorSheet = getSpreadsheet_().getSheetByName(SHEET.ERROR_LOG);
+  const errorRowsBefore = errorSheet ? errorSheet.getLastRow() : 0;
+
+  runAnalysisBatch();
+
+  // 画像起因400の画像なし再実行を経由していないこと
+  // (経由すると画像を読ませないままSI1・SI2が合格し得るため、発生を検知して失敗させる)
+  if (errorSheet) {
+    let image400 = false;
+    const newErrorRows = errorSheet.getLastRow() - errorRowsBefore;
+    if (newErrorRows > 0) {
+      errorSheet.getRange(errorRowsBefore + 1, COL.ERROR.CONTEXT, newErrorRows, 1).getValues()
+        .forEach(function (row) {
+          if (String(row[0]).indexOf('image400') !== -1) image400 = true;
+        });
+    }
+    assert_('画像つき分析が画像なしフォールバック(image400)を経由していない', !image400);
+  }
+
+  verifyFixtureResult_('SI1', i1, function (row, task) {
+    assert_('SI1: 画像メッセージから起票される', task !== null,
+      row ? 'M列=' + row.values[COL.LOG.ANALYSIS_JSON - 1] : '');
+    console.log('SI1: 分析結果(M列)=' + row.values[COL.LOG.ANALYSIS_JSON - 1] +
+      '\n※summary・replyDraftにクーポン画像の内容(TEST COUPON / 20% OFF等)が反映されているか目視確認');
+  });
+  verifyFixtureResult_('SI2', i2, function (row, task) {
+    assert_('SI2: 画像ファイルから起票される', task !== null,
+      row ? 'M列=' + row.values[COL.LOG.ANALYSIS_JSON - 1] : '');
+    console.log('SI2: 分析結果(M列)=' + row.values[COL.LOG.ANALYSIS_JSON - 1]);
+  });
+  const badRow = findLogRow_(i3);
+  assert_('SI3: 画像取得に失敗しても分析済で完了する',
+    badRow !== null && badRow.values[COL.LOG.ANALYSIS_STATUS - 1] === STATUS.ANALYSIS.DONE,
+    badRow ? 'L列=' + badRow.values[COL.LOG.ANALYSIS_STATUS - 1] : '');
+  assert_('SI3: 取得失敗で分析試行回数を消費しない',
+    badRow !== null && Number(badRow.values[COL.LOG.RETRY_COUNT - 1] || 0) === 0);
+
+  // 再分析の冪等性: 画像つきでも同一messageIdからの再起票が防がれる
+  const taskCountBefore = getSpreadsheet_().getSheetByName(SHEET.TASK).getLastRow();
+  const i1Row = findLogRow_(i1);
+  if (i1Row) {
+    markAnalyzed_([i1Row.rowIndex], STATUS.ANALYSIS.PENDING);
+    runAnalysisBatch();
+    const taskCountAfter = getSpreadsheet_().getSheetByName(SHEET.TASK).getLastRow();
+    assert_('画像メッセージの再分析でも再起票されない', taskCountAfter === taskCountBefore,
+      '再分析前: ' + taskCountBefore + '行 / 後: ' + taskCountAfter + '行');
+  }
 }

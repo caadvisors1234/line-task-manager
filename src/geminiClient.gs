@@ -3,8 +3,9 @@
  */
 
 /**
- * 分析用システム指示(§5.2 プロンプトv1)。
- * 版数管理: v1(2026-07-10 初版)。変更時はここに日付と理由を追記する(§5.4)。
+ * 分析用システム指示(§5.2 プロンプトv2)。
+ * 版数管理: v1(2026-07-10 初版) / v2(2026-07-14 画像マルチモーダル対応。ルール8・9を追加)。
+ * 変更時はここに日付と理由を追記する(§5.4)。
  */
 const ANALYSIS_SYSTEM_PROMPT = [
   'あなたは美容室集客支援会社のタスク管理アシスタントです。会社とお客様(サロン)の',
@@ -30,7 +31,14 @@ const ANALYSIS_SYSTEM_PROMPT = [
   '   内容の判断が必要ですぐに答えられない依頼の場合は、与えられた「一次受け',
   '   定型文」をそのまま設定します。',
   '7. 出力は対象メッセージ(お客様発言のうち分析対象と指定されたもの)ごとに',
-  '   1要素とします。'
+  '   1要素とします。',
+  '8. 会話行の末尾に「 — 添付の画像N」とある発言は、その画像データを',
+  '   「添付の画像N (msg_id=...)」のラベル付きで本文の後に添付します。画像の中身',
+  '   (バナー・クーポン・原稿・スクリーンショット・チラシ等)を読み取り、',
+  '   summary・messageType・replyDraft に具体的に反映してください',
+  '   (例: 「クーポン画像(20%OFF)の差し替え依頼」)。',
+  '9. 「画像本体は未添付」とある画像・ファイルは中身を確認できません。本文と前後の',
+  '   文脈のみで判定し、画像の内容を推測して断定的に書かないでください。'
 ].join('\n');
 
 /**
@@ -66,18 +74,20 @@ function buildResponseSchema_() {
 
 /**
  * Gemini APIを呼び出し、パース済みJSONを返す(§5.1)。
+ * extraParts(省略可): テキストの後ろに続けるparts配列(画像のinline_data等。§4.3)。
  * 失敗時は error.geminiErrorType を付けて投げる:
- *   'api'   — 429/5xx等のAPI失敗(呼び出し元は未分析のまま残して次回再試行)
+ *   'api'   — 429/5xx等のAPI失敗(呼び出し元は未分析のまま残して次回再試行)。
+ *             error.httpStatus にHTTPコードを付加する(画像起因の400判定用)
  *   'parse' — スキーマ不一致・パース不能(呼び出し元は1回だけ再試行)
  */
-function callGemini_(systemPrompt, userContent, responseSchema) {
+function callGemini_(systemPrompt, userContent, responseSchema, extraParts) {
   const apiKey = getProp_(CONFIG.PROP.GEMINI_API_KEY);
   if (!apiKey) throw new Error(CONFIG.PROP.GEMINI_API_KEY + ' が未設定です');
 
   const url = CONFIG.GEMINI_ENDPOINT + CONFIG.GEMINI_MODEL + ':generateContent';
   const payload = {
     systemInstruction: { parts: [{ text: systemPrompt }] },
-    contents: [{ role: 'user', parts: [{ text: userContent }] }],
+    contents: [{ role: 'user', parts: [{ text: userContent }].concat(extraParts || []) }],
     generationConfig: {
       responseMimeType: 'application/json',
       responseSchema: responseSchema,
@@ -95,6 +105,7 @@ function callGemini_(systemPrompt, userContent, responseSchema) {
   if (code !== 200) {
     const error = new Error('Gemini APIエラー(HTTP ' + code + '): ' + response.getContentText());
     error.geminiErrorType = 'api';
+    error.httpStatus = code;
     throw error;
   }
 
