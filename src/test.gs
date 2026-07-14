@@ -166,6 +166,82 @@ function test_buildSummary() {
   assert_('最大表示件数での切り詰め', truncated.indexOf('ほか1件はシート参照') !== -1);
 }
 
+/** Flexのcontents木を再帰的にたどり、全textコンポーネントの文字列を収集する(検証用) */
+function collectFlexTexts_(node, acc) {
+  acc = acc || [];
+  if (Array.isArray(node)) {
+    node.forEach(function (child) { collectFlexTexts_(child, acc); });
+  } else if (node && typeof node === 'object') {
+    if (node.type === 'text') acc.push(String(node.text));
+    Object.keys(node).forEach(function (key) {
+      if (typeof node[key] === 'object') collectFlexTexts_(node[key], acc);
+    });
+  }
+  return acc;
+}
+
+/** Flexサマリの構造・文言・切り詰め・0件時・サイズ上限を確認する(§4.4) */
+function test_buildSummaryFlex() {
+  const now = new Date();
+  const today = formatDate_(now);
+  const tasks = [
+    { taskId: 'T-9001', dueText: '本日17:00', salonName: 'サロンB様', summary: 'キャンペーン用バナーの当日修正', status: STATUS.TASK.URGENT, needsReview: false, dueDate: today },
+    { taskId: 'T-9002', dueText: '6/30〜7/1', salonName: '銀座整体院様', summary: '開始日変更の反映', status: STATUS.TASK.AWAITING_APPLY, needsReview: false, dueDate: formatDatePlusDays_(now, 1) },
+    { taskId: 'T-9003', dueText: '毎月希望', salonName: 'アース大槻様', summary: 'インスタ投稿用画像の依頼', status: STATUS.TASK.TODO, needsReview: false, dueDate: '' },
+    { taskId: 'T-9004', dueText: '', salonName: 'サロンC様', summary: '掲載文の修正依頼', status: STATUS.TASK.REQUESTED, needsReview: true, dueDate: '' },
+    { taskId: 'T-9005', dueText: '', salonName: 'ガーデンウシワカマル様', summary: '看板画像の確認', status: STATUS.TASK.TODO, needsReview: false, dueDate: '' },
+    { taskId: 'T-9006', dueText: '', salonName: 'サロンD様', summary: 'ロゴ差し替え', status: STATUS.TASK.AWAITING_CUSTOMER, needsReview: false, dueDate: '' },
+    { taskId: 'T-9007', dueText: '', salonName: 'サロンE様', summary: 'クーポン修正', status: STATUS.TASK.AWAITING_CUSTOMER, needsReview: false, dueDate: '' }
+  ];
+  const options = {
+    now: now, dueSoonDays: 3, maxItems: 15, errorCount: 1, unnamedGroupCount: 1,
+    sheetUrl: 'https://docs.google.com/spreadsheets/d/xxxx'
+  };
+  const flex = buildSummaryFlex_(tasks, options);
+  const contents = flex.contents;
+  console.log(JSON.stringify(contents));
+
+  assert_('bubble構造(header/body/footer/styles)',
+    contents.type === 'bubble' && !!contents.header && !!contents.body && !!contents.footer && !!contents.styles);
+  assert_('ヘッダー帯が墨色', contents.styles.header.backgroundColor === FLEX_COLOR.INK);
+  const button = contents.footer.contents[0];
+  assert_('フッターボタンがシートURLを開く',
+    button.action.type === 'uri' && button.action.uri === options.sheetUrl, JSON.stringify(button.action));
+  assert_('ボタンがアクセント色', button.color === FLEX_COLOR.ACCENT);
+
+  const texts = collectFlexTexts_(contents);
+  assert_('区分の件数表示', texts.indexOf('2件') !== -1 && texts.indexOf('3件') !== -1);
+  assert_('急ぎラベル付きタイトル', texts.indexOf('急ぎ｜サロンB様') !== -1);
+  assert_('期限ラベル付きタイトル', texts.indexOf('期限｜銀座整体院様') !== -1);
+  assert_('期限の補足行', texts.indexOf('期限: 本日17:00') !== -1);
+  assert_('要確認の付記', texts.indexOf('※要確認') !== -1);
+  assert_('件数のみ区分', texts.indexOf('お客様連絡待ち 2件｜反映待ち 1件') !== -1);
+  assert_('分析失敗の表示', texts.indexOf('分析失敗1件(メッセージログを確認してください)') !== -1);
+  assert_('空文字のtextコンポーネントがない(HTTP 400対策)',
+    texts.every(function (t) { return t.length > 0; }));
+  // 400字は自主上限(仕様上限は1,500字。通知欄で読める短さを保つ)
+  assert_('altTextが件数入りの短文',
+    flex.altText.indexOf('急ぎ・期限間近2件') !== -1 && flex.altText.length > 0 && flex.altText.length <= 400,
+    flex.altText);
+  assert_('JSONサイズが上限内',
+    Utilities.newBlob(JSON.stringify(contents)).getBytes().length < 30 * 1024);
+
+  // 切り詰め(サイズ対策。テキスト版と同じ規則)
+  const truncated = buildSummaryFlex_(tasks, {
+    now: now, dueSoonDays: 3, maxItems: 2, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
+  });
+  assert_('最大表示件数での切り詰め',
+    collectFlexTexts_(truncated.contents).indexOf('ほか1件はシート参照') !== -1);
+
+  // 0件時(毎朝同じ構造のbubbleが届く)
+  const empty = buildSummaryFlex_([], {
+    now: now, dueSoonDays: 3, maxItems: 15, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
+  });
+  const emptyTexts = collectFlexTexts_(empty.contents);
+  assert_('0件時も「なし」表示で同構造のbubbleが生成される',
+    empty.contents.type === 'bubble' && emptyTexts.indexOf('なし') !== -1 && emptyTexts.indexOf('0件') !== -1);
+}
+
 // ---------------------------------------------------------------------------
 // P5: Webhook受信系(LINE不要。プロフィール取得は失敗→「(取得不可)」で続行)
 // ---------------------------------------------------------------------------
