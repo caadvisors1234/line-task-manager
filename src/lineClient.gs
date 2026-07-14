@@ -54,6 +54,20 @@ function fetchMessageContent_(messageId, msgType) {
   return { status: 'ok', blob: response.getBlob() };
 }
 
+/** グループの概要(グループ名等)を取得する。失敗時はnull(呼び出し元がサロン名空欄で続行。§3.3) */
+function fetchGroupSummary_(groupId) {
+  try {
+    const response = fetchWithRetry_(
+      CONFIG.LINE_API_BASE + '/v2/bot/group/' + groupId + '/summary',
+      { headers: lineHeaders_() }, 1
+    );
+    if (response.getResponseCode() !== 200) return null;
+    return JSON.parse(response.getContentText());
+  } catch (e) {
+    return null;
+  }
+}
+
 /** グループメンバーの表示名を取得する。失敗時はnull(呼び出し元が「(取得不可)」で続行。§4.1) */
 function fetchGroupMemberProfile_(groupId, userId) {
   try {

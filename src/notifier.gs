@@ -37,7 +37,7 @@ function sendDailySummary() {
       maxItems: settings.summaryMaxItems,
       errorCount: countAnalysisErrors_(),
       unnamedGroupCount: countUnnamedActiveGroups_(),
-      sheetUrl: getSpreadsheet_().getUrl()
+      sheetUrl: externalBrowserUrl_(getSpreadsheet_().getUrl())
     };
     const groupId = getProp_(CONFIG.PROP.SUMMARY_GROUP_ID);
     if (!groupId) throw new Error(CONFIG.PROP.SUMMARY_GROUP_ID + ' が未設定です');
@@ -260,6 +260,15 @@ function flexTaskItem_(t, withLabel) {
     contents.push(flexText_(subParts.join(' '), { size: 'xs', color: FLEX_COLOR.MUTED, margin: 'xs' }));
   }
   return { type: 'box', layout: 'vertical', margin: 'md', contents: contents };
+}
+
+/**
+ * LINE内ブラウザではなく端末の標準ブラウザで開くためのパラメータを付与する
+ * (LINEのURLスキーム openExternalBrowser=1。LINE内ブラウザはGoogle未ログインのため、
+ * スプレッドシートを開くとログイン画面に遷移してしまう対策)
+ */
+function externalBrowserUrl_(url) {
+  return url + (url.indexOf('?') === -1 ? '?' : '&') + 'openExternalBrowser=1';
 }
 
 /** textコンポーネントを組む(propsをそのままマージ) */

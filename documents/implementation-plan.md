@@ -99,7 +99,7 @@
 |---|---|---|
 | `main.gs` | Webhookエントリポイント。イベント振り分けのみ | `doPost(e)` / `handleEvent_(event)` / `handleMessageEvent_(event)` / `handleJoinEvent_(event)` |
 | `config.gs` | 定数集約: シート名、列番号、タスク状況の値、メッセージ種別enum、スクリプトプロパティキー名 | `CONFIG` / `SHEET` / `COL` / `STATUS` / `MSG_TYPE`（定数オブジェクトのみ） |
-| `lineClient.gs` | LINE Messaging APIラッパ | `pushMessage_(to, messages)` / `fetchMessageContent_(messageId)`（api-data.line.me） / `fetchGroupMemberProfile_(groupId, userId)` / `fetchQuotaConsumption_()` |
+| `lineClient.gs` | LINE Messaging APIラッパ | `pushMessage_(to, messages)` / `fetchMessageContent_(messageId)`（api-data.line.me） / `fetchGroupMemberProfile_(groupId, userId)` / `fetchGroupSummary_(groupId)` / `fetchQuotaConsumption_()` |
 | `dropboxClient.gs` | Dropbox APIラッパ（OAuth2リフレッシュ含む） | `getDropboxAccessToken_()` / `uploadToDropbox_(blob, path)` / `getOrCreateSharedLink_(path)` / `exchangeDropboxAuthCode(authCode)`（セットアップ時のみ手動実行） |
 | `geminiClient.gs` | Gemini API呼び出し（structured output） | `callGemini_(systemPrompt, userContent, responseSchema)` / `buildResponseSchema_(openTaskIds)` |
 | `analyzer.gs` | 分析バッチ本体 | `runAnalysisBatch()`（5分トリガー） / `buildAnalysisContext_(groupId, targetMessages)` / `applyAnalysisResult_(msgRow, result)` |
@@ -216,7 +216,7 @@
 | 列 | 項目 | 内容 |
 |---|---|---|
 | A | グループID | joinイベントで自動追加 |
-| B | サロン名 | **人が記入**（記入するだけで運用に乗る）。未記入の間はログのC列が空欄になり、日次サマリで「未設定グループあり」と警告 |
+| B | サロン名 | **Bot参加時にLINEのグループ名を自動記入**（グループ概要API `/v2/bot/group/{groupId}/summary`。取得失敗時は空欄）。表記の変更は人が上書きする（書き込みは新規登録時の1回のみでBotは再更新しないため、上書きが常に優先）。空欄の間はログのC列が空欄になり、日次サマリで「未設定グループあり」と警告 |
 | C | 状態 | `有効` / `退出`（leaveイベントで自動更新） / `社内`（社内通知・管理者・テスト用グループ。人が設定） |
 | D | Bot参加日 | 自動記録 |
 | E | 備考 | 自由記入（将来: 既定担当者の登録欄として拡張） |
@@ -285,7 +285,7 @@
      b. 発言者区分を判定（設定シートの自社メンバーuserIDリスト）、表示名を取得（失敗時「(取得不可)」で続行）。
      c. `image` / `file` / `video` / `audio` の場合、**この場で同期的に** `api-data.line.me` からコンテンツを取得しDropboxへ保存（§4.2）。テキストはこのステップをスキップし応答を早める。
      d. メッセージログへ1行追記（LockService保護下）。**お客様発言（テキスト・画像・ファイル・動画・音声）は `未分析`**、スタンプおよび自社発言は `分析対象外`（画像・ファイルも「資料送付」としての起票対象のため未分析に含める）。
-   - `join`（Botがグループに追加された）: 顧客マスタへ自動追加。
+   - `join`（Botがグループに追加された）: 顧客マスタへ自動追加（サロン名の初期値としてLINEのグループ名を取得・記入。§3.3）。
    - `leave`: 顧客マスタの状態を `退出` に更新。
    - その他（`memberJoined` 等）: 無視。
 5. 常に `ContentService.createTextOutput('OK')` を返す。
@@ -359,7 +359,7 @@
    - 区分見出し＋件数。件数は1件以上でアクセント緑 `#06c755`、0件で灰。各タスクは「ラベル｜サロン名（太字）／作業内容／期限・※要確認」の縦組み。
    - 急ぎの強調は色を使わず「急ぎ｜」接頭辞＋太字のみ（配色を墨色＋アクセント1色に限定するため。赤は不使用）。
    - 0件の区分は「なし」と表示し、全区分0件でも同構造のbubbleを送る（毎朝同じ形が届くこと自体が稼働確認を兼ねる）。
-   - フッターに「タスク一覧を開く」ボタン（URIアクションでスプレッドシートを開く。`style: primary` / 背景 `#06c755`）。
+   - フッターに「タスク一覧を開く」ボタン（URIアクションでスプレッドシートを開く。`style: primary` / 背景 `#06c755`）。URLには `openExternalBrowser=1` を付与し、LINE内ブラウザ（Google未ログインのためログイン画面に遷移してしまう）ではなく端末の標準ブラウザで開く。テキスト版の「詳細:」URLも同様。
    - 通知欄・トーク一覧に出る `altText` は「本日のタスクサマリ(7/2) 急ぎ・期限間近2件／未対応・依頼中3件」形式の短文（仕様上限1,500字に対し十分短い）。
    - 実装上の注意: Flexの `text` コンポーネントに空文字を渡すとHTTP 400になるため、空になり得る行はコンポーネント自体を生成しない。
 4. 各区分を設定値（初期15件）で打ち切り「ほか◯件はシート参照」と付記。加えてFlex JSONが27KB（bubble上限30KBへの安全マージン）を超える場合はテキスト版に切り替えて送信する。
@@ -608,7 +608,7 @@ abc123
 | # | 確認 | 期待結果 |
 |---|---|---|
 | 1 | LINEコンソールの「検証」ボタン | **失敗するが正常**（GASは302を返す仕様のため）。以降の確認は実メッセージで行う |
-| 2 | 社内テストグループにBotを招待 | 顧客マスタに行が自動追加される |
+| 2 | 社内テストグループにBotを招待 | 顧客マスタに行が自動追加され、サロン名にグループ名が自動記入される |
 | 3 | テストグループでテキスト送信 | メッセージログに1行追加。発言者区分が正しい |
 | 4 | 自社メンバーuserIDの収集 | 各メンバーがテストグループで1回発言 → ログのE列からuserIdを設定シートへ転記 |
 | 5 | 画像を送信 | Dropboxに保存され、ログK列にリンクが入る |
