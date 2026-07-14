@@ -30,6 +30,11 @@ const CONFIG = {
   // Flexメッセージ(bubble)のJSONサイズ上限30KBに対する安全マージン(§4.4)
   FLEX_SIZE_LIMIT_BYTES: 27 * 1024,
 
+  // 分析時にGeminiへ渡す画像の上限(§4.3・§5.1)
+  // 3枚×4MB×4/3(base64膨張)≒16MB で、inline_data使用時のリクエスト全体20MB上限に収める
+  ANALYSIS_IMAGE_MAX_COUNT: 3,               // 1分析(1グループ)あたりの添付枚数上限
+  ANALYSIS_IMAGE_MAX_BYTES: 4 * 1024 * 1024, // 1枚あたりの生データ上限
+
   GEMINI_MODEL: 'gemini-3.1-flash-lite',
   GEMINI_ENDPOINT: 'https://generativelanguage.googleapis.com/v1beta/models/',
   LINE_API_BASE: 'https://api.line.me',
@@ -183,6 +188,16 @@ const MSG_TYPE = {
 const SPEAKER = {
   INTERNAL: '自社',
   CUSTOMER: 'お客様'
+};
+
+// 分析画像として扱う拡張子→MIME(§4.3。Geminiのinline_data対応形式のみ)
+const ANALYSIS_IMAGE_MIME = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif'
 };
 
 // 設定シートの項目名(§3.4。A列の文字列そのものがキー)

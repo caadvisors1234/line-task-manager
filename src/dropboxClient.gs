@@ -139,6 +139,36 @@ function getOrCreateSharedLink_(path) {
 }
 
 /**
+ * 共有リンク経由でファイル本体をダウンロードする(§4.3。スコープ sharing.read)。
+ * POST /2/sharing/get_shared_link_file — 応答ボディがファイル本体。
+ * 200以外は例外を投げる(画像取得のフォールバック判断は呼び出し元が行う)。
+ * 再試行は1回に抑える(分析バッチの実行時間予算を守る。失敗時はメタ情報フォールバックで済むため)。
+ */
+function downloadSharedLinkFile_(sharedLinkUrl) {
+  const response = fetchWithRetry_(CONFIG.DROPBOX_CONTENT_API_BASE + '/2/sharing/get_shared_link_file', {
+    method: 'post',
+    // contentエンドポイントが拒否するデフォルトのapplication/x-www-form-urlencodedを避ける
+    contentType: 'application/octet-stream',
+    headers: {
+      Authorization: 'Bearer ' + getDropboxAccessToken_(),
+      'Dropbox-API-Arg': headerSafeJson_({ url: sharedLinkUrl })
+    }
+  }, 1);
+  const code = response.getResponseCode();
+  if (code === 401) {
+    // キャッシュ済みトークンの失効・認可取り消し: キャッシュを破棄して次回の再発行を促し、
+    // 「Dropbox認証エラー」規約の文言で投げて最重要アラート(§4.2)に乗せる
+    CacheService.getScriptCache().remove(DROPBOX_TOKEN_CACHE_KEY);
+    throw new Error('Dropbox認証エラー: 共有リンクのダウンロードが401: ' + response.getContentText());
+  }
+  if (code !== 200) {
+    throw new Error('Dropbox共有リンクのダウンロード失敗(HTTP ' + code + '): ' +
+      response.getContentText());
+  }
+  return response.getBlob();
+}
+
+/**
  * Dropbox-API-Argヘッダー用のHTTP header safe JSON(§4.2 手順3)。
  * 非ASCII文字(日本語サロン名等)を \uXXXX にエスケープする。
  */

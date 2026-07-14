@@ -55,23 +55,48 @@ function analyzeGroup_(groupId, targetMessages, settings) {
   const salonName = targetMessages[0].salonName;
   const openTasks = getOpenTasksBySalon_(salonName);
   const openTaskIds = openTasks.map(function (t) { return t.taskId; });
+  // 画像収集は1回だけ行い、parse再試行でも再ダウンロードしない(§4.3)
+  const images = collectAnalysisImages_(targetMessages);
   const context = buildAnalysisContext_(groupId, targetMessages, {
     salonName: salonName,
     openTasks: openTasks,
-    settings: settings
+    settings: settings,
+    images: images
   });
 
   let results;
   try {
-    results = callAnalysis_(context, targetMessages);
+    results = callAnalysis_(context, targetMessages, images.parts);
   } catch (e) {
     if (e.geminiErrorType === 'parse') {
       // スキーマ不一致・パース不能は1回だけ再試行し、失敗なら「エラー」(§4.3 異常系)
       try {
-        results = callAnalysis_(context, targetMessages);
+        results = callAnalysis_(context, targetMessages, images.parts);
       } catch (e2) {
         logError_('analyzeGroup_:parse(' + groupId + ')', e2);
         markAnalyzed_(targetMessages.map(function (m) { return m.rowIndex; }), STATUS.ANALYSIS.ERROR);
+        return;
+      }
+    } else if (e.httpStatus === 400 && images.parts.length > 0) {
+      // 画像を含むリクエストの400は画像起因(破損・非対応形式等)の決定的エラーの可能性が高い。
+      // 未分析のまま5回リトライ(約25分)を浪費しないよう、画像なしの文脈に組み直して1回だけ再実行する
+      // (このフォールバックは最初の失敗が400の場合のみ。parse再試行の2回目の失敗は上の分岐で「エラー」)
+      logError_('analyzeGroup_:image400(' + groupId + ')', e);
+      const textOnlyContext = buildAnalysisContext_(groupId, targetMessages, {
+        salonName: salonName,
+        openTasks: openTasks,
+        settings: settings,
+        images: imagesAsFallback_(targetMessages)
+      });
+      try {
+        results = callAnalysis_(textOnlyContext, targetMessages, []);
+      } catch (e2) {
+        logError_('analyzeGroup_:image400retry(' + groupId + ')', e2);
+        if (e2.geminiErrorType === 'parse') {
+          markAnalyzed_(targetMessages.map(function (m) { return m.rowIndex; }), STATUS.ANALYSIS.ERROR);
+        } else {
+          handleApiFailure_(targetMessages);
+        }
         return;
       }
     } else {
@@ -90,8 +115,8 @@ function analyzeGroup_(groupId, targetMessages, settings) {
 }
 
 /** Gemini呼び出し+応答の形式検証(全対象メッセージ分の判定が揃っているか) */
-function callAnalysis_(context, targetMessages) {
-  const results = callGemini_(ANALYSIS_SYSTEM_PROMPT, context, buildResponseSchema_());
+function callAnalysis_(context, targetMessages, imageParts) {
+  const results = callGemini_(ANALYSIS_SYSTEM_PROMPT, context, buildResponseSchema_(), imageParts);
   if (!Array.isArray(results)) {
     const error = new Error('Gemini応答が配列でない');
     error.geminiErrorType = 'parse';
@@ -110,11 +135,14 @@ function callAnalysis_(context, targetMessages) {
 }
 
 /**
- * 分析文脈を組み立てる(§4.3 手順2a・§5.2)。
+ * 分析文脈を組み立てる(§4.3 手順2b・§5.2)。
  * 直近会話ウィンドウ(自社発言を含む)+未完了タスク+返信テンプレート+一次受け定型文+現在日時。
+ * options.images(collectAnalysisImages_の戻り値)で、添付した画像の対応付けと
+ * 未添付フォールバックの注記を会話行に付ける。
  */
 function buildAnalysisContext_(groupId, targetMessages, options) {
   const settings = options.settings;
+  const images = options.images || { attachedIndex: {}, fallback: {} };
   const targetIds = {};
   targetMessages.forEach(function (m) { targetIds[m.messageId] = true; });
 
@@ -126,7 +154,13 @@ function buildAnalysisContext_(groupId, targetMessages, options) {
 
   const conversationLines = olderTargets.concat(conversation).map(function (m) {
     const marker = targetIds[m.messageId] ? '(分析対象 msg_id=' + m.messageId + ') ' : '';
-    return '[' + m.speakerType + '] ' + marker + describeMessage_(m);
+    let imageNote = '';
+    if (images.attachedIndex[m.messageId]) {
+      imageNote = ' — 添付の画像' + images.attachedIndex[m.messageId];
+    } else if (images.fallback[m.messageId]) {
+      imageNote = ' — 画像本体は未添付';
+    }
+    return '[' + m.speakerType + '] ' + marker + describeMessage_(m) + imageNote;
   });
 
   const taskLines = options.openTasks.length > 0
@@ -179,7 +213,81 @@ function describeMessage_(message) {
   }
 }
 
-/** 判定結果を検証し、タスク起票とメッセージログ更新を行う(§4.3 手順2c〜2e) */
+/**
+ * 分析対象メッセージの画像(imageと画像拡張子のfile)を収集し、Gemini用partsを組み立てる(§4.3)。
+ * K列の共有リンクからダウンロードする(§4.2で保存済み。スコープ sharing.read)。
+ * 取得失敗・サイズ超過・枚数超過は添付せずメタ情報のみへフォールバックし、
+ * 例外を外へ投げない(画像が理由で分析リトライを消費させない)。
+ * 戻り値: { parts: Gemini用parts配列, attachedIndex: {messageId: 1始まりの添付番号},
+ *           fallback: {messageId: true}(画像だが未添付のもの) }
+ */
+function collectAnalysisImages_(targetMessages) {
+  const parts = [];
+  const attachedIndex = {};
+  const fallback = {};
+  let attachedCount = 0;
+
+  targetMessages.forEach(function (message) {
+    const mime = analysisImageMime_(message);
+    if (!mime) return; // 画像でないメッセージは対象外
+    // K列が共有リンクでない(未保存マーカー・空欄)行は添付できない(applyAnalysisResult_と同じ判定)
+    if (message.dropboxLink.indexOf('http') !== 0) {
+      fallback[message.messageId] = true;
+      return;
+    }
+    if (attachedCount >= CONFIG.ANALYSIS_IMAGE_MAX_COUNT) {
+      fallback[message.messageId] = true;
+      return;
+    }
+    try {
+      const bytes = downloadSharedLinkFile_(message.dropboxLink).getBytes();
+      if (bytes.length === 0 || bytes.length > CONFIG.ANALYSIS_IMAGE_MAX_BYTES) {
+        fallback[message.messageId] = true;
+        return;
+      }
+      attachedCount++;
+      attachedIndex[message.messageId] = attachedCount;
+      parts.push({ text: '添付の画像' + attachedCount + ' (msg_id=' + message.messageId + ')' });
+      parts.push({ inline_data: { mime_type: mime, data: Utilities.base64Encode(bytes) } });
+    } catch (e) {
+      logError_('collectAnalysisImages_(' + message.messageId + ')', e);
+      if (String(e.message).indexOf('Dropbox認証エラー') !== -1) {
+        notifyAdmin_(
+          '【最重要】Dropbox認証エラーが発生しています。分析用の画像取得ができません。' +
+          'リフレッシュトークンの再取得(認可フロー)が必要です: ' + e.message,
+          'dropbox_auth'
+        );
+      }
+      fallback[message.messageId] = true;
+    }
+  });
+
+  return { parts: parts, attachedIndex: attachedIndex, fallback: fallback };
+}
+
+/**
+ * メッセージが分析画像に該当すればMIMEタイプを、対象外ならnullを返す(§4.3)。
+ * imageはjpg固定(contentExtension_と同じ前提)。fileは本文(=ファイル名)の拡張子で判定する。
+ */
+function analysisImageMime_(message) {
+  if (message.msgType === 'image') return 'image/jpeg';
+  if (message.msgType === 'file') {
+    const match = String(message.body || '').match(/(\.[A-Za-z0-9]+)$/);
+    if (match) return ANALYSIS_IMAGE_MIME[match[1].toLowerCase()] || null;
+  }
+  return null;
+}
+
+/** 全画像を未添付(フォールバック)扱いにした収集結果を返す(画像起因400の画像なし再実行用) */
+function imagesAsFallback_(targetMessages) {
+  const fallback = {};
+  targetMessages.forEach(function (message) {
+    if (analysisImageMime_(message)) fallback[message.messageId] = true;
+  });
+  return { parts: [], attachedIndex: {}, fallback: fallback };
+}
+
+/** 判定結果を検証し、タスク起票とメッセージログ更新を行う(§4.3 手順2d〜2f) */
 function applyAnalysisResult_(message, result, openTaskIds) {
   // relatedTaskIdの実在照合(AIの幻覚対策の二重防御。実在しない値は破棄し要確認に倒す)
   let relatedTaskId = result.relatedTaskId || '';
