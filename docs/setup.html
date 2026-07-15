@@ -657,7 +657,7 @@
             GASエディタから <code>setupSpreadsheet()</code> を実行します。使い方シート(先頭タブ)＋5シート(タスク一覧・メッセージログ・顧客マスタ・設定・返信テンプレート)＋エラーログシート、ヘッダー(人が記入する列=緑/AIの列=墨色の色分け・説明メモ付き)、タスク状況10区分のプルダウン、行色分けの条件付き書式、K〜R列の非表示化が自動生成されます。
           </div></div>
           <div class="mini-step"><div class="d">
-            設定シートに<strong>自社メンバーuserIDリスト</strong>(収集手順は 05 疎通確認の項番4)と<strong>一次受け定型文</strong>を登録し、返信テンプレートシートに既存のやり取りから初期5〜10パターンを登録します。
+            設定シートに<strong>一次受け定型文</strong>を登録し、返信テンプレートシートに既存のやり取りから初期5〜10パターンを登録します。<strong>自社メンバーuserIDリスト</strong>は手動登録不要です(状態「社内」のグループで発言した人が自動で追記されます。05 疎通確認の項番4)。
           </div></div>
           <div class="mini-step"><div class="d">
             共有設定を<strong>社内メンバーのみ</strong>に限定します(リンク共有オフ)。
@@ -767,7 +767,7 @@
       </div></div>
       <div class="check"><div class="d">
         <strong>自社メンバーuserIDの収集</strong>
-        <span class="expect">各メンバーがテストグループで1回発言 → ログのE列からuserIdを設定シートへ転記</span>
+        <span class="expect">テストグループを顧客マスタで状態「社内」にし、各メンバーが1回発言 → 設定シートの自社メンバーuserIDリストへ自動追記される。確認後は状態を「有効」に戻す(以降の画像・起票確認のため)</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>画像を送信</strong>
