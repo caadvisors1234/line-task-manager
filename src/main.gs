@@ -72,7 +72,15 @@ function handleMessageEvent_(event) {
 
   // a. サロン名引き当て(未登録ならjoin漏れとして自動登録)
   let master = resolveSalonName_(groupId) || registerNewGroup_(groupId);
-  if (master.state === STATUS.MASTER.INTERNAL) return; // 社内グループはログ・分析の対象外(§3.3)
+  if (master.state === STATUS.MASTER.INTERNAL) {
+    // 社内グループの発言者は自社メンバーリストへ自動追記する(§3.4。失敗しても受信処理は壊さない)
+    try {
+      appendInternalUserId_(event.source.userId || '');
+    } catch (error) {
+      logError_('appendInternalUserId_', error);
+    }
+    return; // 社内グループはログ・分析の対象外(§3.3)
+  }
   // サロン名が空欄のままの登録済みグループは、グループ名の取得を再試行して補記する(§3.3)
   if (!master.salonName) master = registerNewGroup_(groupId);
 

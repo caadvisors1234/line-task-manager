@@ -107,6 +107,40 @@ function getInternalUserIds_() {
   return getSettings_().internalUserIds;
 }
 
+/**
+ * 自社メンバーuserIDリストへuserIdを追記する(状態「社内」グループの発言者を自動登録。§3.4)。
+ * 手動転記の手間をなくすためのもので、登録済みなら何もしない。追記したときのみtrueを返す。
+ * 手動で削除されたIDも本人が社内グループで発言すると再追記されるため、退職者は
+ * リストからの削除とあわせてLINEグループからも退出させる運用とする(設定シートの説明に記載)。
+ */
+function appendInternalUserId_(userId) {
+  if (!userId) return false; // Webhookイベントのsource.userIdは欠落し得る
+  if (getInternalUserIds_().indexOf(userId) !== -1) return false; // 登録済み(定常時はここで抜ける)
+  return withScriptLock_(function () {
+    // ロック内でシートを読み直して再チェックする(複数メンバーがほぼ同時に初発言した
+    // 場合のread-modify-write競合でIDが消失するのを防ぐ)
+    settingsMemo_ = null;
+    if (getInternalUserIds_().indexOf(userId) !== -1) return false;
+    const sheet = getSpreadsheet_().getSheetByName(SHEET.SETTINGS);
+    const found = sheet.getRange(2, 1, Math.max(sheet.getLastRow() - 1, 1), 1)
+      .createTextFinder(SETTING_KEY.INTERNAL_USER_IDS).matchEntireCell(true).findNext();
+    if (!found) {
+      logError_('appendInternalUserId_',
+        new Error('設定シートに「' + SETTING_KEY.INTERNAL_USER_IDS + '」の行が見つかりません'));
+      return false;
+    }
+    // 既存値は生のまま残す(担当者が改行区切り等で手整形していても壊さない)
+    const cell = sheet.getRange(found.getRow(), 2);
+    const current = String(cell.getValue() || '');
+    cell.setValue(asCellText_(current ? current + ',' + userId : userId));
+    // ロック解放前に書き込みを確定させる(未反映のままロックが外れると、並行実行が
+    // 追記前の値を読んで上書きし、先に追記したIDが消失する)
+    SpreadsheetApp.flush();
+    settingsMemo_ = null; // 同一実行内の後続処理が追記後の値を読めるようにする
+    return true;
+  });
+}
+
 /** 返信テンプレート一覧(§3.5) */
 function getReplyTemplates_() {
   const sheet = getSpreadsheet_().getSheetByName(SHEET.TEMPLATE);

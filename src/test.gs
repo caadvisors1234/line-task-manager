@@ -8,6 +8,8 @@
 const TEST_GROUP_PREFIX = 'Ctest';
 const TEST_CUSTOMER_USER_ID = 'Utestcustomer00000000000000000001';
 const TEST_INTERNAL_USER_ID = 'Utestinternal00000000000000000001';
+// 社内グループへのテスト発言用(自動追記されるため使い捨てIDにし、テスト末尾でリストから除去する)
+const TEST_AUTO_USER_PREFIX = 'Utestauto';
 
 // 画像分析テスト用のフィクスチャPNG(360x140。「TEST COUPON / 20% OFF CUT + COLOR /
 // valid until 2026-08-31」と描画済み。Geminiが内容を読み取れたかの目視確認に使う)
@@ -454,12 +456,80 @@ function test_simulateJoinAndInternalGroup() {
   assert_('joinイベントで顧客マスタに自動追加される', entry !== null && entry.state === STATUS.MASTER.ACTIVE);
 
   // 状態を「社内」にするとメッセージがログに残らない(§3.3)
+  // 発言者は使い捨てID(社内グループの発言者は自社メンバーリストへ自動追記されるため、
+  // TEST_CUSTOMER_USER_ID を使うと以後のテストで発言者区分の判定が壊れる)
   if (entry) {
     getSpreadsheet_().getSheetByName(SHEET.MASTER)
       .getRange(entry.rowIndex, COL.MASTER.STATE).setValue(STATUS.MASTER.INTERNAL);
-    const before = logRowCount_();
-    callDoPost_([makeTextEvent_(groupId, TEST_CUSTOMER_USER_ID, '社内グループのテスト発言')]);
-    assert_('社内グループの発言はログ・分析の対象外', logRowCount_() === before);
+    try {
+      const before = logRowCount_();
+      callDoPost_([makeTextEvent_(groupId, TEST_AUTO_USER_PREFIX + suffix, '社内グループのテスト発言')]);
+      assert_('社内グループの発言はログ・分析の対象外', logRowCount_() === before);
+    } finally {
+      removeInternalUserIdsByPrefix_(TEST_AUTO_USER_PREFIX);
+    }
+  }
+}
+
+/** テスト用: 自社メンバーuserIDリストから指定プレフィックスのIDを取り除く(自動追記の後片付け) */
+function removeInternalUserIdsByPrefix_(prefix) {
+  // appendInternalUserId_と同じセルを書き換えるため、同様にロックで保護する
+  withScriptLock_(function () {
+    const sheet = getSpreadsheet_().getSheetByName(SHEET.SETTINGS);
+    const found = sheet.getRange(2, 1, Math.max(sheet.getLastRow() - 1, 1), 1)
+      .createTextFinder(SETTING_KEY.INTERNAL_USER_IDS).matchEntireCell(true).findNext();
+    if (!found) return;
+    const cell = sheet.getRange(found.getRow(), 2);
+    const remaining = String(cell.getValue() || '').split(/[,、\s\n]+/)
+      .map(function (s) { return s.trim(); })
+      .filter(function (id) { return id && id.indexOf(prefix) !== 0; });
+    cell.setValue(asCellText_(remaining.join(',')));
+    SpreadsheetApp.flush();
+    settingsMemo_ = null;
+  });
+}
+
+/** 社内グループの発言者が自社メンバーuserIDリストへ自動追記されることを確認する(§3.4) */
+function test_simulateInternalSpeakerAutoRegister() {
+  const suffix = Utilities.getUuid().replace(/-/g, '').substring(0, 24);
+  const internalGroupId = ensureTestGroup_('auto' + suffix, '(社内テスト)');
+  const internalEntry = resolveSalonName_(internalGroupId);
+  getSpreadsheet_().getSheetByName(SHEET.MASTER)
+    .getRange(internalEntry.rowIndex, COL.MASTER.STATE).setValue(STATUS.MASTER.INTERNAL);
+  const userId = TEST_AUTO_USER_PREFIX + suffix;
+
+  try {
+    // 1. 未登録IDで社内グループ発言 → リストへ追記され、ログは増えない
+    const beforeLog = logRowCount_();
+    callDoPost_([makeTextEvent_(internalGroupId, userId, '自動登録のテスト発言')]);
+    settingsMemo_ = null;
+    assert_('社内グループの発言者がリストへ自動追記される', getInternalUserIds_().indexOf(userId) !== -1);
+    assert_('社内グループの発言はログに残らないまま', logRowCount_() === beforeLog);
+
+    // 2. 登録済みIDの再発言 → 重複追記されない
+    callDoPost_([makeTextEvent_(internalGroupId, userId, '自動登録のテスト発言(2回目)')]);
+    settingsMemo_ = null;
+    const occurrences = getInternalUserIds_().filter(function (id) { return id === userId; }).length;
+    assert_('登録済みIDは重複追記されない', occurrences === 1, '出現回数: ' + occurrences);
+
+    // 3. 2人目の発言 → 既存のIDを消さずに追記される(連結でなく上書きになる退行の検出)
+    const secondUserId = TEST_AUTO_USER_PREFIX + 'y' + suffix;
+    callDoPost_([makeTextEvent_(internalGroupId, secondUserId, '自動登録のテスト発言(2人目)')]);
+    settingsMemo_ = null;
+    assert_('2人目が追記され、1人目のIDも残る',
+      getInternalUserIds_().indexOf(userId) !== -1 && getInternalUserIds_().indexOf(secondUserId) !== -1);
+
+    // 4. 通常グループ(状態「有効」)の発言 → 追記されず、ログには残る
+    const customerGroupId = ensureTestGroup_('text0000000000000000000000001', 'テストサロン様');
+    const otherUserId = TEST_AUTO_USER_PREFIX + 'x' + suffix;
+    const event = makeTextEvent_(customerGroupId, otherUserId, '通常グループのテスト発言');
+    callDoPost_([event]);
+    settingsMemo_ = null;
+    assert_('通常グループの発言者は追記されない', getInternalUserIds_().indexOf(otherUserId) === -1);
+    assert_('通常グループの発言はログに残る', findLogRow_(event.message.id) !== null);
+  } finally {
+    // 後片付け(開発シートの設定値がテストのたびに肥大しないように)
+    removeInternalUserIdsByPrefix_(TEST_AUTO_USER_PREFIX);
   }
 }
 
