@@ -33,10 +33,16 @@ function runAnalysisBatch() {
       byGroup[message.groupId].push(message);
     });
 
-    for (let i = 0; i < groupOrder.length && i < settings.batchGroupLimit; i++) {
+    // 関連メッセージ(依頼文とその画像等)が別バッチに分かれてタスクが割れるのを防ぐため、
+    // 直近に発言があったグループは今回スキップして次回バッチにまとめる(§4.3 手順1)
+    const ready = groupOrder.filter(function (groupId) {
+      return isGroupReadyForAnalysis_(byGroup[groupId], startMs);
+    });
+
+    for (let i = 0; i < ready.length && i < settings.batchGroupLimit; i++) {
       // GASの6分制限ガード: 4.5分超過で残りを次回バッチへ持ち越す(§4.3 手順3)
       if (Date.now() - startMs > CONFIG.BATCH_TIME_LIMIT_MS) break;
-      const groupId = groupOrder[i];
+      const groupId = ready[i];
       try {
         analyzeGroup_(groupId, byGroup[groupId], settings);
       } catch (e) {
@@ -48,6 +54,25 @@ function runAnalysisBatch() {
   } finally {
     props.deleteProperty(CONFIG.PROP.ANALYSIS_LOCK_UNTIL);
   }
+}
+
+/**
+ * グループの分析を今回のバッチで実行してよいか判定する(§4.3 手順1)。
+ * 「TOP画像を変えたい」→画像 のように用件が複数メッセージに分かれて届くため、
+ * 最新メッセージから ANALYSIS_COOLDOWN_MS の間は後続を待って次回バッチへ持ち越す。
+ * ただし発言が続くグループが滞留しないよう、最古の未分析が ANALYSIS_MAX_DEFER_MS を
+ * 超えたら待たずに分析する。
+ * 受信日時(yyyy-MM-dd HH:mm:ss)は文字列の辞書順で新旧比較できる(retryPendingTranscodes_と同様)。
+ */
+function isGroupReadyForAnalysis_(messages, nowMs) {
+  let newest = '';
+  let oldest = '';
+  messages.forEach(function (message) {
+    if (!newest || message.receivedAt > newest) newest = message.receivedAt;
+    if (!oldest || message.receivedAt < oldest) oldest = message.receivedAt;
+  });
+  if (oldest < formatDateTime_(new Date(nowMs - CONFIG.ANALYSIS_MAX_DEFER_MS))) return true;
+  return newest < formatDateTime_(new Date(nowMs - CONFIG.ANALYSIS_COOLDOWN_MS));
 }
 
 /** 1グループ分の未分析メッセージを分析して結果を適用する */
@@ -107,14 +132,21 @@ function analyzeGroup_(groupId, targetMessages, settings) {
     }
   }
 
-  const resultByMessageId = {};
-  results.forEach(function (r) { resultByMessageId[r.messageId] = r; });
-  targetMessages.forEach(function (message) {
-    applyAnalysisResult_(message, resultByMessageId[message.messageId], openTaskIds);
+  // 応答1要素 = タスク1件。同一用件にまとめられた複数メッセージが1タスクになる(§4.3)
+  results.forEach(function (result) {
+    const members = memberMessages_(result, targetMessages);
+    // 対象メッセージを1件も含まない要素(全IDが幻覚)は起票しない。
+    // 対象の網羅はcallAnalysis_で検証済みのため、ここで未分析が取り残されることはない
+    if (members.length > 0) applyTaskResult_(members, result, openTaskIds);
   });
 }
 
-/** Gemini呼び出し+応答の形式検証(全対象メッセージ分の判定が揃っているか) */
+/**
+ * Gemini呼び出し+応答の形式検証。
+ * 全対象メッセージが、いずれかのタスク要素の sourceMessageIds にちょうど1回ずつ
+ * 現れることを確認する(欠落=取りこぼし、重複=同一メッセージからの二重起票)。
+ * 対象外のID(会話文脈や幻覚)は起票側で無視するため、ここでは記録のみで失敗させない。
+ */
 function callAnalysis_(context, targetMessages, imageParts) {
   const results = callGemini_(ANALYSIS_SYSTEM_PROMPT, context, buildResponseSchema_(), imageParts);
   if (!Array.isArray(results)) {
@@ -122,16 +154,49 @@ function callAnalysis_(context, targetMessages, imageParts) {
     error.geminiErrorType = 'parse';
     throw error;
   }
-  const returnedIds = {};
-  results.forEach(function (r) { returnedIds[r.messageId] = true; });
-  const missing = targetMessages.filter(function (m) { return !returnedIds[m.messageId]; });
-  if (missing.length > 0) {
-    const error = new Error('Gemini応答に対象メッセージの判定が欠落: ' +
-      missing.map(function (m) { return m.messageId; }).join(', '));
+
+  // Object.create(null): 'constructor'等のIDを幻覚された際にObject.prototypeへ当たるのを防ぐ
+  const targetIds = Object.create(null);
+  targetMessages.forEach(function (m) { targetIds[m.messageId] = true; });
+  const covered = Object.create(null);
+  const duplicated = [];
+  const unknown = [];
+  results.forEach(function (result) {
+    const ids = Array.isArray(result.sourceMessageIds) ? result.sourceMessageIds : [];
+    const seenInResult = Object.create(null);
+    ids.forEach(function (id) {
+      if (!targetIds[id]) {
+        unknown.push(id);
+        return;
+      }
+      // 同一要素内の重複列挙はmemberMessages_が畳み込むため異常ではない。
+      // 二重起票につながるのは要素をまたいだ重複のみ
+      if (seenInResult[id]) return;
+      seenInResult[id] = true;
+      if (covered[id]) duplicated.push(id);
+      covered[id] = true;
+    });
+  });
+  if (unknown.length > 0) {
+    logError_('callAnalysis_:unknownSourceIds', '対象外のsourceMessageIdsを無視: ' + unknown.join(', '));
+  }
+  const missing = targetMessages
+    .filter(function (m) { return !covered[m.messageId]; })
+    .map(function (m) { return m.messageId; });
+  if (missing.length > 0 || duplicated.length > 0) {
+    const error = new Error('Gemini応答のsourceMessageIdsが不正(欠落: [' + missing.join(', ') +
+      '] / 重複: [' + duplicated.join(', ') + '])');
     error.geminiErrorType = 'parse';
     throw error;
   }
   return results;
+}
+
+/** タスク要素の sourceMessageIds に対応する対象メッセージを受信順で返す(§4.3) */
+function memberMessages_(result, targetMessages) {
+  const ids = Object.create(null); // callAnalysis_と同じく幻覚IDがObject.prototypeへ当たるのを防ぐ
+  (result.sourceMessageIds || []).forEach(function (id) { ids[id] = true; });
+  return targetMessages.filter(function (message) { return ids[message.messageId]; });
 }
 
 /**
@@ -230,7 +295,7 @@ function collectAnalysisImages_(targetMessages) {
   targetMessages.forEach(function (message) {
     const mime = analysisImageMime_(message);
     if (!mime) return; // 画像でないメッセージは対象外
-    // K列が共有リンクでない(未保存マーカー・空欄)行は添付できない(applyAnalysisResult_と同じ判定)
+    // K列が共有リンクでない(未保存マーカー・空欄)行は添付できない(applyTaskResult_と同じ判定)
     if (message.dropboxLink.indexOf('http') !== 0) {
       fallback[message.messageId] = true;
       return;
@@ -287,8 +352,11 @@ function imagesAsFallback_(targetMessages) {
   return { parts: [], attachedIndex: {}, fallback: fallback };
 }
 
-/** 判定結果を検証し、タスク起票とメッセージログ更新を行う(§4.3 手順2d〜2f) */
-function applyAnalysisResult_(message, result, openTaskIds) {
+/**
+ * 判定結果1件(=タスク1件)を検証し、タスク起票とメッセージログ更新を行う(§4.3 手順2d〜2f)。
+ * members: この判定にまとめられた対象メッセージ(受信順。先頭が最古)。
+ */
+function applyTaskResult_(members, result, openTaskIds) {
   // relatedTaskIdの実在照合(AIの幻覚対策の二重防御。実在しない値は破棄し要確認に倒す)
   let relatedTaskId = result.relatedTaskId || '';
   let needsReview = !!result.needsReview;
@@ -297,35 +365,44 @@ function applyAnalysisResult_(message, result, openTaskIds) {
     needsReview = true;
   }
 
+  const messageIds = members.map(function (message) { return message.messageId; });
   let taskId = '';
   if (result.needsTask) {
-    // 同一messageIdからの再起票を防ぐ(§4.3 異常系)
-    taskId = findTaskBySourceMessageId_(message.messageId);
+    // 同一メッセージからの再起票を防ぐ(§4.3 異常系)
+    taskId = findTaskBySourceMessageIds_(messageIds);
     if (!taskId) {
-      const attachmentLink = message.dropboxLink.indexOf('http') === 0 ? message.dropboxLink : '';
+      // まとめた全メッセージの添付リンクをG列へ入れる(依頼文+画像が1タスクになるため)
+      const links = members
+        .map(function (message) { return message.dropboxLink; })
+        .filter(function (link) { return link.indexOf('http') === 0; });
+      const head = members[0];
       taskId = createTask_({
         dueText: result.dueDate || '',
-        salonName: message.salonName,
+        salonName: head.salonName,
         msgType: result.messageType,
         summary: result.summary,
-        attachmentLink: attachmentLink,
+        attachmentLink: links.join('\n'),
         status: result.isApproval ? STATUS.TASK.AWAITING_APPLY : STATUS.TASK.TODO,
-        createdLabel: createdLabelFromReceivedAt_(message.receivedAt),
+        createdLabel: createdLabelFromReceivedAt_(head.receivedAt),
         replyDraft: result.replyDraft || '',
-        groupId: message.groupId,
+        groupId: head.groupId,
         urgency: result.urgency || '',
         relatedTaskId: relatedTaskId,
         needsReview: needsReview,
-        sourceMessageId: message.messageId,
+        sourceMessageId: messageIds.join(','),
         dueDate: result.dueDate || ''
       });
       // 既存タスクへの資料送付は、元タスクのG列(議事録・添付資料)にも追記する
-      if (relatedTaskId && attachmentLink) {
-        appendAttachmentLink_(relatedTaskId, attachmentLink);
+      if (relatedTaskId && links.length > 0) {
+        appendAttachmentLink_(relatedTaskId, links.join('\n'));
       }
     }
   }
-  setAnalysisResult_(message.rowIndex, STATUS.ANALYSIS.DONE, JSON.stringify(result), taskId);
+  // まとめた各行に同じ判定JSON・タスクIDを記録する(どの行からの起票か追跡できるように)
+  const resultJson = JSON.stringify(result);
+  members.forEach(function (message) {
+    setAnalysisResult_(message.rowIndex, STATUS.ANALYSIS.DONE, resultJson, taskId);
+  });
 }
 
 /** 受信日時(yyyy-MM-dd HH:mm:ss)からタスク発生日ラベル(M/d LINE)を作る */
