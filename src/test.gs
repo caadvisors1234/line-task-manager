@@ -557,11 +557,13 @@ function test_simulateImageMessage() {
 /**
  * フィクスチャ会話をログへ直接投入する(doPost・LINEを経由しない)。
  * overrides(省略可): recordへ上書きマージする項目({ msgType: 'image', dropboxLink: url } 等)。
+ * 受信日時はまとめ待機(§4.3 ANALYSIS_COOLDOWN_MS)より前に遡らせる。現在時刻で投入すると
+ * 直後の runAnalysisBatch() が「後続メッセージ待ち」と判断して何も分析しないため。
  */
 function insertFixtureLog_(groupId, salonName, speakerType, text, overrides) {
   const messageId = 'testmsg' + Utilities.getUuid().replace(/-/g, '');
   const record = {
-    receivedAt: formatDateTime_(new Date()),
+    receivedAt: formatDateTime_(new Date(Date.now() - CONFIG.ANALYSIS_COOLDOWN_MS - 60 * 1000)),
     groupId: groupId,
     salonName: salonName,
     speakerType: speakerType,
@@ -598,6 +600,83 @@ function clearPendingAnalysisRows_() {
   }
   if (rowIndexes.length > 0) markAnalyzed_(rowIndexes, STATUS.ANALYSIS.SKIP);
   return rowIndexes.length;
+}
+
+/** 関連メッセージのまとめ待機(クールダウン)の判定を確認する(Gemini・シート不要。§4.3) */
+function test_isGroupReadyForAnalysis() {
+  const now = Date.now();
+  const at = function (msAgo) { return { receivedAt: formatDateTime_(new Date(now - msAgo)) }; };
+
+  assert_('直後に届いたメッセージは後続を待って持ち越す',
+    isGroupReadyForAnalysis_([at(10 * 1000)], now) === false);
+  assert_('まとめ待機を過ぎたグループは分析する',
+    isGroupReadyForAnalysis_([at(CONFIG.ANALYSIS_COOLDOWN_MS + 30 * 1000)], now) === true);
+  assert_('古い依頼でも直後に発言が続いていれば待つ',
+    isGroupReadyForAnalysis_([at(5 * 60 * 1000), at(5 * 1000)], now) === false);
+  assert_('最古が持ち越し上限を超えたら発言が続いていても分析する(滞留防止)',
+    isGroupReadyForAnalysis_([at(CONFIG.ANALYSIS_MAX_DEFER_MS + 60 * 1000), at(5 * 1000)], now) === true);
+}
+
+/**
+ * 関連メッセージのまとめ起票(§4.3)の結合テスト。
+ * 「TOP画像を変えたい」という依頼文とその画像を続けて投入し、1タスクにまとまるか検証する。
+ * 実行前提: GEMINI_API_KEY・Dropbox設定済み。
+ */
+function test_runAnalysisOnMergeFixture() {
+  const cleared = clearPendingAnalysisRows_();
+  if (cleared > 0) console.log('前処理: 過去テストの未分析 ' + cleared + ' 行を分析対象外にしました');
+
+  const jpegUrl = uploadTestImageFixture_(TEST_IMAGE_JPEG_BASE64, '.jpg', 'image/jpeg');
+  const groupId = ensureTestGroup_('fixmerge0000000000000000000001', 'テストサロン結合様');
+  const m1 = insertFixtureLog_(groupId, 'テストサロン結合様', SPEAKER.CUSTOMER,
+    'TOP画像を変更したいです。こちらの画像に差し替えをお願いします。');
+  const m2 = insertFixtureLog_(groupId, 'テストサロン結合様', SPEAKER.CUSTOMER, '',
+    { msgType: 'image', dropboxLink: jpegUrl });
+
+  runAnalysisBatch();
+
+  const row1 = findLogRow_(m1);
+  const row2 = findLogRow_(m2);
+  assert_('まとめ: 依頼文・画像の両方が分析済になる',
+    row1 !== null && row2 !== null &&
+    String(row1.values[COL.LOG.ANALYSIS_STATUS - 1]) === STATUS.ANALYSIS.DONE &&
+    String(row2.values[COL.LOG.ANALYSIS_STATUS - 1]) === STATUS.ANALYSIS.DONE);
+  if (!row1 || !row2) return;
+
+  const taskId1 = String(row1.values[COL.LOG.TASK_ID - 1] || '');
+  const taskId2 = String(row2.values[COL.LOG.TASK_ID - 1] || '');
+  assert_('まとめ: 依頼文と画像が1つのタスクにまとまる', taskId1 !== '' && taskId1 === taskId2,
+    '依頼文=' + taskId1 + ' / 画像=' + taskId2 + ' / M列=' + row1.values[COL.LOG.ANALYSIS_JSON - 1]);
+  if (!taskId1 || taskId1 !== taskId2) return;
+
+  const task = findTaskRow_(taskId1);
+  if (!task) {
+    assert_('まとめ: タスク行が見つかる', false, taskId1);
+    return;
+  }
+  const sourceIds = String(task[COL.TASK.SOURCE_MESSAGE_ID - 1]).split(',');
+  assert_('まとめ: 起票元messageIdに両方のIDが記録される',
+    sourceIds.length === 2 && sourceIds.indexOf(m1) !== -1 && sourceIds.indexOf(m2) !== -1,
+    String(task[COL.TASK.SOURCE_MESSAGE_ID - 1]));
+  assert_('まとめ: 画像の共有リンクが議事録・添付資料(G列)に入る',
+    String(task[COL.TASK.ATTACHMENT - 1]).indexOf('http') === 0,
+    String(task[COL.TASK.ATTACHMENT - 1]));
+  console.log('まとめ: 作業内容(F列)=' + task[COL.TASK.SUMMARY - 1] +
+    '\n※TOP画像の差し替え依頼として1件にまとまり、画像の内容が反映されているか目視確認');
+
+  // 再起票防止: カンマ連結された起票元messageIdからでも既存タスクを引けること。
+  // 行数だけの検証では、再分析でneedsTask=falseと判定された場合に照合を通らないまま合格し得るため、
+  // 元のタスクIDが引けている(=照合が実際に成立した)ことまで確認する
+  const taskCountBefore = getSpreadsheet_().getSheetByName(SHEET.TASK).getLastRow();
+  markAnalyzed_([row2.rowIndex], STATUS.ANALYSIS.PENDING);
+  runAnalysisBatch();
+  const taskCountAfter = getSpreadsheet_().getSheetByName(SHEET.TASK).getLastRow();
+  const row2After = findLogRow_(m2);
+  assert_('まとめ: カンマ連結の起票元IDでも再起票が防がれる',
+    taskCountAfter === taskCountBefore && row2After !== null &&
+    String(row2After.values[COL.LOG.TASK_ID - 1]) === taskId1,
+    '再分析前: ' + taskCountBefore + '行 / 後: ' + taskCountAfter + '行 / 起票タスクID=' +
+    (row2After ? row2After.values[COL.LOG.TASK_ID - 1] : '(行なし)') + ' / 期待=' + taskId1);
 }
 
 /**

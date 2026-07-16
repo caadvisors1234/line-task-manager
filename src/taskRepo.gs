@@ -19,6 +19,7 @@ function issueTaskId_() {
  * タスクを起票する(新規行の追加のみ。既存行は更新しない。§4.3)。
  * task: { dueText, salonName, msgType, summary, attachmentLink, status, createdLabel,
  *         replyDraft, groupId, urgency, relatedTaskId, needsReview, sourceMessageId, dueDate }
+ * sourceMessageId は、関連メッセージをまとめて起票した場合は複数IDのカンマ連結になる(§4.3)。
  * 戻り値: 採番したタスクID
  */
 function createTask_(task) {
@@ -96,14 +97,22 @@ function getTasksForSummary_() {
     });
 }
 
-/** 起票元messageIdによる既存タスク照合(再起票防止。§4.3) */
-function findTaskBySourceMessageId_(messageId) {
-  if (!messageId) return null;
-  const sheet = getSpreadsheet_().getSheetByName(SHEET.TASK);
-  const found = sheet.getRange(2, COL.TASK.SOURCE_MESSAGE_ID, Math.max(sheet.getLastRow() - 1, 1), 1)
-    .createTextFinder(messageId).matchEntireCell(true).findNext();
-  if (!found) return null;
-  return String(sheet.getRange(found.getRow(), COL.TASK.TASK_ID).getValue());
+/**
+ * 起票元messageIdによる既存タスク照合(再起票防止。§4.3)。
+ * 関連メッセージのまとめ起票によりP列は複数IDのカンマ連結になり得るため、
+ * カンマ分割して完全一致で照合する(TextFinderの部分一致ではID同士の誤検出が起こるため)。
+ * messageIds のいずれか1つでも既存タスクの起票元に含まれていれば、そのタスクIDを返す。
+ */
+function findTaskBySourceMessageIds_(messageIds) {
+  const targets = (messageIds || []).filter(function (id) { return !!id; });
+  if (targets.length === 0) return null;
+  const rows = getTaskRows_();
+  for (let i = 0; i < rows.length; i++) {
+    const sourceIds = String(rows[i][COL.TASK.SOURCE_MESSAGE_ID - 1]).split(',');
+    const hit = targets.some(function (id) { return sourceIds.indexOf(id) !== -1; });
+    if (hit) return String(rows[i][COL.TASK.TASK_ID - 1]);
+  }
+  return null;
 }
 
 /**

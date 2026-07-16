@@ -3,8 +3,9 @@
  */
 
 /**
- * 分析用システム指示(§5.2 プロンプトv2)。
- * 版数管理: v1(2026-07-10 初版) / v2(2026-07-14 画像マルチモーダル対応。ルール8・9を追加)。
+ * 分析用システム指示(§5.2 プロンプトv3)。
+ * 版数管理: v1(2026-07-10 初版) / v2(2026-07-14 画像マルチモーダル対応。ルール8・9を追加) /
+ *   v3(2026-07-16 出力単位をメッセージごと→タスクごとに変更。ルール7を書き換え)。
  * 変更時はここに日付と理由を追記する(§5.4)。
  */
 const ANALYSIS_SYSTEM_PROMPT = [
@@ -30,8 +31,14 @@ const ANALYSIS_SYSTEM_PROMPT = [
   '   与えられた返信テンプレートに近い状況があればその文体・構成に従います。',
   '   内容の判断が必要ですぐに答えられない依頼の場合は、与えられた「一次受け',
   '   定型文」をそのまま設定します。',
-  '7. 出力は対象メッセージ(お客様発言のうち分析対象と指定されたもの)ごとに',
-  '   1要素とします。',
+  '7. 出力はタスクごとに1要素とします。1つの用件が複数のメッセージに分かれている場合',
+  '   (「TOP画像を変えたい」という依頼文とその画像が続けて送られた等)は1要素にまとめ、',
+  '   sourceMessageIds に該当するmsg_idをすべて列挙します。まとめるのは同一の用件だと',
+  '   明確に読み取れる場合のみとし、迷う場合は分けてください(別の用件をまとめると',
+  '   片方が失われるため。この点はルール4より優先します)。タスク化しないメッセージ',
+  '   (雑談・お礼等)も needsTask を false にした要素として出力します。分析対象',
+  '   メッセージIDはすべて、いずれか1要素の sourceMessageIds にちょうど1回ずつ',
+  '   現れる必要があります。',
   '8. 会話行の末尾に「 — 添付の画像N」とある発言は、その画像データを',
   '   「添付の画像N (msg_id=...)」のラベル付きで本文の後に添付します。画像の中身',
   '   (バナー・クーポン・原稿・スクリーンショット・チラシ等)を読み取り、',
@@ -52,7 +59,11 @@ function buildResponseSchema_() {
     items: {
       type: 'object',
       properties: {
-        messageId: { type: 'string' },
+        sourceMessageIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'このタスクの根拠となる分析対象メッセージのmsg_id(同一用件は複数まとめる)'
+        },
         messageType: {
           type: 'string',
           enum: [MSG_TYPE.NEW, MSG_TYPE.APPROVAL, MSG_TYPE.QUESTION, MSG_TYPE.MATERIAL, MSG_TYPE.CHAT]
@@ -67,7 +78,7 @@ function buildResponseSchema_() {
         requesterName: { type: 'string' },
         replyDraft: { type: 'string', nullable: true }
       },
-      required: ['messageId', 'messageType', 'needsTask', 'summary', 'urgency', 'needsReview', 'isApproval']
+      required: ['sourceMessageIds', 'messageType', 'needsTask', 'summary', 'urgency', 'needsReview', 'isApproval']
     }
   };
 }
