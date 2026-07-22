@@ -18,7 +18,8 @@ function issueTaskId_() {
 /**
  * タスクを起票する(新規行の追加のみ。既存行は更新しない。§4.3)。
  * task: { dueText, salonName, msgType, summary, attachmentLink, status, createdLabel,
- *         replyDraft, groupId, urgency, relatedTaskId, needsReview, sourceMessageId, dueDate }
+ *         originalText, replyDraft, groupId, urgency, relatedTaskId, needsReview,
+ *         sourceMessageId, dueDate }
  * sourceMessageId は、関連メッセージをまとめて起票した場合は複数IDのカンマ連結になる(§4.3)。
  * 戻り値: 採番したタスクID
  */
@@ -37,15 +38,16 @@ function createTask_(task) {
       asCellText_(task.attachmentLink), // G: 議事録・添付資料
       asCellText_(task.status || STATUS.TASK.TODO), // H: タスク状況(初期値のみ)
       asCellText_(task.createdLabel), // I: タスク発生日
-      asCellText_(task.replyDraft),  // J: 返信提案
-      asCellText_(taskId),           // K: タスクID
-      asCellText_(task.groupId),     // L: グループID
-      asCellText_(task.urgency),     // M: 緊急度
-      asCellText_(task.relatedTaskId), // N: 関連タスクID
-      task.needsReview ? '要確認' : '', // O: 要確認フラグ
-      asCellText_(task.sourceMessageId), // P: 起票元messageId
-      asCellText_(formatDateTime_(new Date())), // Q: 起票日時
-      asCellText_(task.dueDate)      // R: 期限(yyyy-MM-dd)
+      asCellText_(truncateForCell_(task.originalText)), // J: 元の連絡文
+      asCellText_(task.replyDraft),  // K: 返信提案
+      asCellText_(taskId),           // L: タスクID
+      asCellText_(task.groupId),     // M: グループID
+      asCellText_(task.urgency),     // N: 緊急度
+      asCellText_(task.relatedTaskId), // O: 関連タスクID
+      task.needsReview ? '要確認' : '', // P: 要確認フラグ
+      asCellText_(task.sourceMessageId), // Q: 起票元messageId
+      asCellText_(formatDateTime_(new Date())), // R: 起票日時
+      asCellText_(task.dueDate)      // S: 期限(yyyy-MM-dd)
     ]);
     return taskId;
   });
@@ -99,7 +101,7 @@ function getTasksForSummary_() {
 
 /**
  * 起票元messageIdによる既存タスク照合(再起票防止。§4.3)。
- * 関連メッセージのまとめ起票によりP列は複数IDのカンマ連結になり得るため、
+ * 関連メッセージのまとめ起票によりQ列は複数IDのカンマ連結になり得るため、
  * カンマ分割して完全一致で照合する(TextFinderの部分一致ではID同士の誤検出が起こるため)。
  * messageIds のいずれか1つでも既存タスクの起票元に含まれていれば、そのタスクIDを返す。
  */

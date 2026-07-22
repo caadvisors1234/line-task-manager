@@ -227,6 +227,7 @@ function test_taskRepoBasics() {
   const id1 = createTask_({
     salonName: 'テストサロン様', msgType: MSG_TYPE.NEW, summary: 'リポジトリテスト用タスク1',
     status: STATUS.TASK.TODO, createdLabel: '7/10 LINE', groupId: groupId,
+    originalText: '元の連絡文テスト1行目\n2行目',
     sourceMessageId: 'testsrc-' + Utilities.getUuid()
   });
   const id2 = createTask_({
@@ -242,6 +243,9 @@ function test_taskRepoBasics() {
   const row1 = findTaskRow_(id1);
   assert_('B列(納品データ)・C列(担当者名)が空で作成される',
     row1[COL.TASK.DELIVERY - 1] === '' && row1[COL.TASK.ASSIGNEE - 1] === '');
+  assert_('J列(元の連絡文)が改行を保って保存される',
+    String(row1[COL.TASK.ORIGINAL_TEXT - 1]) === '元の連絡文テスト1行目\n2行目',
+    JSON.stringify(String(row1[COL.TASK.ORIGINAL_TEXT - 1])));
 
   appendAttachmentLink_(id1, 'https://example.com/link1');
   appendAttachmentLink_(id1, 'https://example.com/link2');
@@ -661,6 +665,10 @@ function test_runAnalysisOnMergeFixture() {
   assert_('まとめ: 画像の共有リンクが議事録・添付資料(G列)に入る',
     String(task[COL.TASK.ATTACHMENT - 1]).indexOf('http') === 0,
     String(task[COL.TASK.ATTACHMENT - 1]));
+  const originalText = String(task[COL.TASK.ORIGINAL_TEXT - 1]);
+  assert_('まとめ: 元の連絡文(J列)に依頼文と画像のメタ表現が改行区切りで入る',
+    originalText === 'TOP画像を変更したいです。こちらの画像に差し替えをお願いします。\n(画像を受信)',
+    JSON.stringify(originalText));
   console.log('まとめ: 作業内容(F列)=' + task[COL.TASK.SUMMARY - 1] +
     '\n※TOP画像の差し替え依頼として1件にまとまり、画像の内容が反映されているか目視確認');
 
@@ -729,7 +737,10 @@ function test_runAnalysisOnFixture() {
     assert_('S1: 種別=新規依頼', task[COL.TASK.MSG_TYPE - 1] === MSG_TYPE.NEW,
       String(task[COL.TASK.MSG_TYPE - 1]));
     assert_('S1: タスク状況=未対応', task[COL.TASK.STATUS - 1] === STATUS.TASK.TODO);
-    console.log('S1: 期限(R列)=' + task[COL.TASK.DUE_DATE - 1] + '(直近の金曜日付になっているか目視確認)');
+    assert_('S1: 元の連絡文(J列)にメッセージ本文が入る',
+      String(task[COL.TASK.ORIGINAL_TEXT - 1]) === 'クーポン画像を金曜までに差し替えてください',
+      String(task[COL.TASK.ORIGINAL_TEXT - 1]));
+    console.log('S1: 期限(S列)=' + task[COL.TASK.DUE_DATE - 1] + '(直近の金曜日付になっているか目視確認)');
   });
   verifyFixtureResult_('S2', s2, function (row, task) {
     assert_('S2: 起票される', task !== null);
@@ -757,7 +768,7 @@ function test_runAnalysisOnFixture() {
     if (!task) return;
     const draft = String(task[COL.TASK.REPLY_DRAFT - 1]);
     const template = getSettings_().firstReplyTemplate;
-    console.log('S6: 返信提案(J列)=' + draft);
+    console.log('S6: 返信提案(K列)=' + draft);
     if (template) {
       assert_('S6: 一次受け定型文が下書きされる', draft.indexOf(template) !== -1);
     } else {
