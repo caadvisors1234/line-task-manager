@@ -79,7 +79,7 @@ const SHEET = {
 
 // 列番号(1始まり、Range準拠)
 const COL = {
-  // タスク一覧(§3.1): A〜Jが表示列、K〜Rが非表示管理列
+  // タスク一覧(§3.1): A〜Kが表示列、L〜Sが非表示管理列
   TASK: {
     DUE_TEXT: 1,          // A: 対応期日(AI初期値のみ→担当者)
     DELIVERY: 2,          // B: 納品データ(Bot書き込み禁止)
@@ -90,16 +90,17 @@ const COL = {
     ATTACHMENT: 7,        // G: 議事録・添付資料(AIは追記のみ)
     STATUS: 8,            // H: タスク状況(AI初期値のみ→担当者)
     CREATED_LABEL: 9,     // I: タスク発生日(例: 7/2 LINE)
-    REPLY_DRAFT: 10,      // J: 返信提案
-    TASK_ID: 11,          // K: タスクID(T-0001形式)
-    GROUP_ID: 12,         // L: グループID
-    URGENCY: 13,          // M: 緊急度(高・中・低)
-    RELATED_TASK_ID: 14,  // N: 関連タスクID
-    NEEDS_REVIEW: 15,     // O: 要確認フラグ
-    SOURCE_MESSAGE_ID: 16,// P: 起票元messageId
-    CREATED_AT: 17,       // Q: 起票日時
-    DUE_DATE: 18,         // R: 期限(yyyy-MM-dd。サマリの期限間近判定用)
-    LAST: 18
+    ORIGINAL_TEXT: 10,    // J: 元の連絡文(起票元メッセージ本文。まとめ起票時は改行区切り)
+    REPLY_DRAFT: 11,      // K: 返信提案
+    TASK_ID: 12,          // L: タスクID(T-0001形式)
+    GROUP_ID: 13,         // M: グループID
+    URGENCY: 14,          // N: 緊急度(高・中・低)
+    RELATED_TASK_ID: 15,  // O: 関連タスクID
+    NEEDS_REVIEW: 16,     // P: 要確認フラグ
+    SOURCE_MESSAGE_ID: 17,// Q: 起票元messageId
+    CREATED_AT: 18,       // R: 起票日時
+    DUE_DATE: 19,         // S: 期限(yyyy-MM-dd。サマリの期限間近判定用)
+    LAST: 19
   },
   // メッセージログ(§3.2)
   LOG: {

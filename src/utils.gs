@@ -87,6 +87,20 @@ function asCellText_(value) {
   return s === '' ? '' : "'" + s;
 }
 
+/**
+ * セルの50,000字上限に収まるよう切り詰める(超過時は末尾に省略表記)。
+ * 元の連絡文など、メッセージ由来の長文をセルへ書く前に通す。
+ */
+function truncateForCell_(value, maxLen) {
+  const s = value === null || value === undefined ? '' : String(value);
+  const max = maxLen || 45000;
+  if (s.length <= max) return s;
+  let cut = s.slice(0, max);
+  // サロゲートペア(絵文字等)の途中で切ると孤立サロゲートが残るため1文字余分に削る
+  if (/[\uD800-\uDBFF]$/.test(cut)) cut = cut.slice(0, -1);
+  return cut + '\n…(以下省略)';
+}
+
 /** yyyy-MM-dd HH:mm:ss(JST) */
 function formatDateTime_(date) {
   return Utilities.formatDate(date, CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');

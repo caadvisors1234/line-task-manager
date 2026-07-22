@@ -384,6 +384,8 @@ function applyTaskResult_(members, result, openTaskIds) {
         attachmentLink: links.join('\n'),
         status: result.isApproval ? STATUS.TASK.AWAITING_APPLY : STATUS.TASK.TODO,
         createdLabel: createdLabelFromReceivedAt_(head.receivedAt),
+        // 元の連絡文: まとめた全メッセージの本文を受信順に連結(非テキストはメタ表現)
+        originalText: members.map(function (message) { return describeMessage_(message); }).join('\n'),
         replyDraft: result.replyDraft || '',
         groupId: head.groupId,
         urgency: result.urgency || '',

@@ -82,7 +82,7 @@ function sendDailySummary() {
 function summarizeTasks_(tasks, options) {
   const dueLimit = formatDatePlusDays_(options.now, options.dueSoonDays);
 
-  // 区分1: 急ぎ・期限間近(タスク状況「急ぎの対応」+ 期限がN日以内。R列で判定。期限昇順)
+  // 区分1: 急ぎ・期限間近(タスク状況「急ぎの対応」+ 期限がN日以内。S列で判定。期限昇順)
   const urgentTasks = tasks.filter(function (t) {
     return t.status === STATUS.TASK.URGENT || (t.dueDate && t.dueDate <= dueLimit);
   });

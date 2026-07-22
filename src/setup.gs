@@ -30,7 +30,7 @@ const HEADER_STYLE = {
 };
 
 // 各シートのヘッダー定義: { name: 見出し, human: 人が記入・更新する列, note: セルメモ }
-// タスク一覧(§3.1)。A〜Jは既存業務シートの列名を踏襲、K〜R(非表示管理列)は平易名
+// タスク一覧(§3.1)。A〜Kは既存業務シートの列名を踏襲(J: 元の連絡文のみ追加)、L〜S(非表示管理列)は平易名
 const TASK_HEADER_DEFS = [
   { name: '対応期日', human: true,
     note: '【記入する人】メッセージから読み取れた場合にAIが初期値を記入します。確定・変更は担当者が行ってください(AIは上書きしません)。\n【内容】対応の期日。自由な書き方で構いません。\n【例】本日17:00／6/30〜7/1の間で更新' },
@@ -50,6 +50,8 @@ const TASK_HEADER_DEFS = [
     note: '【記入する人】登録時にAIが初期値(未対応または反映待ち)を入れます。以後の更新は担当者がプルダウンから選んでください。\n【内容】値を変えると行全体の色が自動で変わります。\n【例】作業が終わったら「作業完了・未チェック」に変更' },
   { name: 'タスク発生日',
     note: '【記入する人】AIが自動記入します。\n【内容】タスクの発生日と発生元。\n【例】7/14 LINE' },
+  { name: '元の連絡文',
+    note: '【記入する人】AIが自動記入します。\n【内容】タスクの元になったLINEメッセージの本文。複数のメッセージをまとめて登録した場合は改行区切りで全件入ります。画像・ファイルは「(画像を受信)」などの表記になります。' },
   { name: '返信提案',
     note: '【記入する人】AIが自動記入します。\n【内容】お客様への返信の下書き。内容を確認のうえ、送信は担当者が行ってください。' },
   { name: 'タスクID(自動採番)',
@@ -202,8 +204,19 @@ function buildTaskSheet_(sheet) {
   sheet.getRange('H2:H').setDataValidation(validation);
 
   // 値に応じた行全体の色分け(条件付き書式。§3.1)
-  const range = sheet.getRange('A2:R');
-  const rules = TASK_STATUS_STYLES.map(function (style) {
+  sheet.setConditionalFormatRules(buildTaskStatusRules_(sheet.getRange('A2:S')));
+
+  // 自動型変換の防止: A列(対応期日は自由書式のテキスト)と管理列L〜S
+  // (タスクID・messageId・yyyy-MM-dd が日付・数値に化けるとサマリ表示や照合が壊れる)
+  sheet.getRange('A2:A').setNumberFormat('@');
+  sheet.getRange('L2:S').setNumberFormat('@');
+  // 非表示管理列 L〜S(§3.1)
+  sheet.hideColumns(COL.TASK.TASK_ID, COL.TASK.LAST - COL.TASK.TASK_ID + 1);
+}
+
+/** タスク状況→行全体の色の条件付き書式ルール一式を生成する(§3.1。移行処理と共用) */
+function buildTaskStatusRules_(range) {
+  return TASK_STATUS_STYLES.map(function (style) {
     const builder = SpreadsheetApp.newConditionalFormatRule()
       .whenFormulaSatisfied('=$H2="' + style.status + '"')
       .setBackground(style.background)
@@ -212,14 +225,6 @@ function buildTaskSheet_(sheet) {
     if (style.strikethrough) builder.setStrikethrough(true);
     return builder.build();
   });
-  sheet.setConditionalFormatRules(rules);
-
-  // 自動型変換の防止: A列(対応期日は自由書式のテキスト)と管理列K〜R
-  // (タスクID・messageId・yyyy-MM-dd が日付・数値に化けるとサマリ表示や照合が壊れる)
-  sheet.getRange('A2:A').setNumberFormat('@');
-  sheet.getRange('K2:R').setNumberFormat('@');
-  // 非表示管理列 K〜R(§3.1)
-  sheet.hideColumns(COL.TASK.TASK_ID, COL.TASK.LAST - COL.TASK.TASK_ID + 1);
 }
 
 function buildLogSheet_(sheet) {
@@ -297,7 +302,7 @@ function buildGuideSheet_(sheet) {
   push('担当者名／納品データ', 'あなた(AIは書き込みません)');
   push('対応期日／タスク状況(進捗)', 'AIが初期値を入れ、以後はあなたが更新');
   push('議事録・添付資料', 'AIが資料の保存リンクを追記。あなたも自由に追記できます');
-  push('店舗名／メッセージ種別／作業内容／タスク発生日／返信提案', 'AIが自動記入(編集不要)');
+  push('店舗名／メッセージ種別／作業内容／タスク発生日／元の連絡文／返信提案', 'AIが自動記入(編集不要)');
   pushNote('見出しの色が目印です: 緑=人が触る列、墨色=AIの列。各見出しにカーソルを載せると詳しい説明が表示されます。');
   push();
 
@@ -393,6 +398,50 @@ function installTriggers() {
   ScriptApp.newTrigger('runAnalysisBatch').timeBased().everyMinutes(5).create();
   ScriptApp.newTrigger('sendDailySummary').timeBased().atHour(10).everyDays(1).create();
   console.log('トリガーを設置しました: runAnalysisBatch(5分おき) / sendDailySummary(毎日10〜11時枠)');
+}
+
+/**
+ * 運用中の「タスク一覧」シートへ「元の連絡文」列(J列)を挿入するワンタイム移行(§3.1)。
+ * setupSpreadsheet() は既存シートに触れないため、既存シートへの列追加はこの関数で行う。
+ * 適用済みなら何もしない(冪等)。列挿入後に中断した状態からの再実行では挿入を跳ばして続きを適用する。
+ * 想定外のレイアウトなら例外で中断する(別シート・二重実行の防護)。
+ * 実行手順: runAnalysisBatch・sendDailySummary の両トリガーを一時削除(列ズレ書き込み・列ズレ読みの防止)
+ *   → clasp push → 本関数 → installTriggers() で復旧。
+ */
+function migrateTaskSheetAddOriginalText() {
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.TASK);
+  if (!sheet) throw new Error('タスク一覧シートが見つかりません');
+  const headerJ = String(sheet.getRange(1, COL.TASK.ORIGINAL_TEXT).getValue());
+  const headerK = String(sheet.getRange(1, COL.TASK.REPLY_DRAFT).getValue());
+  if (headerJ === '元の連絡文') {
+    console.log('migrateTaskSheetAddOriginalText: 適用済みのためスキップ');
+    return;
+  }
+  if (headerJ === '返信提案') {
+    sheet.insertColumnBefore(COL.TASK.ORIGINAL_TEXT);
+  } else if (!(headerJ === '' && headerK === '返信提案')) {
+    // J1が空でK1=返信提案なら「前回、列挿入後に中断した状態」なので挿入を跳ばして続きを適用する
+    throw new Error('想定外のレイアウトのため中断します(J1=「' + headerJ + '」/ K1=「' + headerK + '」)');
+  }
+  setHeader_(sheet, TASK_HEADER_DEFS);
+
+  // 条件付き書式: 自前のタスク状況ルールだけを除去し、新レンジ(A2:S)で再構築する。
+  // 他のルールは保全しつつ、移行前と同じく自前ルールを先頭に置く(先頭優先のため優先関係を変えない)
+  const ownFormulas = TASK_STATUS_STYLES.map(function (style) { return '=$H2="' + style.status + '"'; });
+  const kept = sheet.getConditionalFormatRules().filter(function (rule) {
+    const condition = rule.getBooleanCondition();
+    if (!condition) return true;
+    return !condition.getCriteriaValues().some(function (value) {
+      return ownFormulas.indexOf(String(value)) !== -1;
+    });
+  });
+  sheet.setConditionalFormatRules(buildTaskStatusRules_(sheet.getRange('A2:S')).concat(kept));
+
+  // 書式・非表示列を現行仕様に再適用(列挿入でずれた分の正規化。buildTaskSheet_ と同一内容)
+  sheet.getRange('A2:A').setNumberFormat('@');
+  sheet.getRange('L2:S').setNumberFormat('@');
+  sheet.hideColumns(COL.TASK.TASK_ID, COL.TASK.LAST - COL.TASK.TASK_ID + 1);
+  console.log('migrateTaskSheetAddOriginalText: 「元の連絡文」列を追加しました');
 }
 
 /**
