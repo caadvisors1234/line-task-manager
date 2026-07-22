@@ -455,14 +455,17 @@ function retryPendingTranscodes_(startMs) {
         return;
       }
       const extension = row.msgType === 'video' ? '.mp4' : '.m4a';
-      // 受信日時文字列からパス部品を作る(Date再パースを避ける)
-      const compact = row.receivedAt.replace(/[-:]/g, '').replace(' ', '_');
-      const folder = row.salonName
-        ? sanitizePathSegment_(row.salonName)
-        : '_未設定/' + sanitizePathSegment_(row.groupId);
-      const path = CONFIG.DROPBOX_ROOT_FOLDER + '/' + folder + '/' +
-        row.receivedAt.substring(0, 7).replace('-', '') + '/' +
-        compact + '_' + row.messageId + extension;
+      // 受信日時(シート上で不変)から受信時と同じ組み立てでパスを再構成する(冪等)。
+      // 手動編集等で受信日時が壊れている行はパスを作れないため打ち切る(無限リトライ防止)
+      const receivedDate = parseDateTime_(row.receivedAt);
+      if (isNaN(receivedDate.getTime())) {
+        logError_('retryPendingTranscodes_(' + row.messageId + ')',
+          new Error('受信日時を解釈できないため打ち切り: ' + row.receivedAt));
+        giveUpTranscode_(row);
+        return;
+      }
+      const path = buildDropboxPath_(row.salonName, row.groupId,
+        receivedDate.getTime(), row.messageId, extension);
       uploadToDropbox_(content.blob, path);
       const link = getOrCreateSharedLink_(path);
       updateDropboxLink_(row.rowIndex, link);

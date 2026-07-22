@@ -1,7 +1,7 @@
 # LINEタスク管理Bot 実装プラン
 
 **株式会社サイバーアクセル・アドバイザーズ — お客様LINEにおける対応漏れ防止システム**
-作成日: 2026-07-02 / 版: 1.1（レビュー・ファクトチェック反映版、2026-07-02）
+作成日: 2026-07-02 / 版: 1.2（テスト運用フィードバック反映版: 通知10時化・元の連絡文列・Dropbox保存先変更、2026-07-22）
 
 ---
 
@@ -31,7 +31,7 @@
 |---|---|---|
 | 1 | タスク状況プルダウンへの「対象外」追加可否 | 提案書は「多めに拾い、不要なものを人が除外する運用」とするが、9区分に除外用の値がない。行削除は証跡が消えるため、**「対象外」を10番目の値として追加することを推奨**（追加しない場合は「タスク完了済み」への変更で代替） |
 | 2 | タスク一覧への非表示管理列の追加可否 | タスクID・関連タスクID等を右端の非表示列として持つ（§4.1）。見た目・運用は変わらないが、現行シートに列が物理的に増える |
-| 3 | Dropboxの保存先フォルダ構成 | 本書は `/LINEタスク管理/{サロン名}/` を提案（§5.2）。既存のフォルダ運用に合わせて調整 |
+| 3 | Dropboxの保存先フォルダ構成 | 当初は `/LINEタスク管理/{サロン名}/{yyyyMM}/` で構築。テスト運用のフィードバックを受け、発注元の既存Dropbox運用に合わせた `/お客様/お預かり画像/{yyyy.M.d}{サロン名}/`（発注元アカウントのDropbox）へ変更（§4.2） |
 | 4 | 社内通知グループの正確な人数 | 通数試算（§11.1）の前提。約30名で試算しているが、増減により月次通数が変わる |
 | 5 | 既存タスクシートの移行方法 | 新規スプレッドシートに現行データを移すか、現行シートを拡張するか。本書は**新規作成＋パイロット開始時に未完了分のみ手動転記**を推奨 |
 | 6 | 日次サマリに中間状態（作業完了・未チェック/チェック完了・残りお客様連絡/佐藤さん提出）の件数を表示するか | 承認版の通知イメージに合わせ、本書では非表示（急ぎ・未対応系の表示が中心）としている。中間状態も毎朝確認したい場合は件数行を追加できる |
@@ -313,8 +313,9 @@
 1. `GET https://api-data.line.me/v2/bot/message/{messageId}/content` でBlobを取得（通常APIの `api.line.me` とはドメインが異なる点に注意）。動画・音声は変換完了前だと取得できないため、`GET .../content/transcoding` で変換状態を確認し、`processing` の場合は2秒間隔で最大3回待って再取得する（それでも未完了ならmessageIdをログに記録し、分析バッチ側で遅延再取得する）。
 2. アクセストークンを `getDropboxAccessToken_()` で取得。リフレッシュトークンから `POST https://api.dropboxapi.com/oauth2/token`（`grant_type=refresh_token`）で再発行し、CacheServiceに3.5時間キャッシュ（アクセストークンの有効期間約4時間より短く設定）。
 3. `POST https://content.dropboxapi.com/2/files/upload` でアップロード。
-   - 保存パス: `/LINEタスク管理/{サロン名}/{yyyyMM}/{yyyyMMdd_HHmmss}_{messageId}.{拡張子}`。日時は**Webhookイベントの `timestamp`**（重複配信でも不変）から生成し、messageIdと合わせて**同一メッセージは常に同一パス＝冪等**とする（`mode: overwrite`）。
-   - サロン名が未設定のグループは `/LINEタスク管理/_未設定/{groupId}/` 配下に保存する。サロン名に含まれるパス不可文字（`/` `\` 等）は `_` に置換する。
+   - 保存パス: `/お客様/お預かり画像/{yyyy.M.d}{サロン名}/{yyyyMMdd_HHmmss}_{messageId}.{拡張子}`。日付フォルダは発注元の既存運用（例: `2025.1.19旭岡店`）に合わせ、ゼロ埋めなし・サロン名直結。日時は**Webhookイベントの `timestamp`**（重複配信でも不変）から生成し、messageIdと合わせて**同一メッセージは常に同一パス＝冪等**とする（`mode: overwrite`）。動画・音声の変換待ち再取得（`retryPendingTranscodes_`）もメッセージログの受信日時（シート上で不変）から `buildDropboxPath_` で同一パスを再構成する。
+   - サロン名が未設定のグループは `/お客様/お預かり画像/{yyyy.M.d}_未設定/{groupId}/` 配下に保存する。サロン名に含まれるパス不可文字（`/` `\` 等）は `_` に置換する。
+   - 保存先は**発注元アカウント（caabchimu@gmail.com）のDropbox**。切替時はDropboxアプリ（アクセスタイプ「Full Dropbox」必須）を発注元アカウントで作成し、スクリプトプロパティ `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` / `DROPBOX_REFRESH_TOKEN` を差し替えのうえ `resetDropboxTokenCache()` でトークンキャッシュを破棄する（旧トークンが最大約3.6時間残るため）。
    - `Dropbox-API-Arg` ヘッダーは非ASCII文字を受け付けないため、パスに日本語（サロン名）を含むJSONは **`\uXXXX` にエスケープして載せる**（HTTP header safe JSON）。
 4. `POST https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings` で共有リンクを作成。**409（`shared_link_already_exists`）の場合は、エラーレスポンスに含まれる既存リンクのメタデータを使うか、`sharing/list_shared_links`（`direct_only: true`）で既存リンクを取得**して使う。
 5. リンクをメッセージログK列に記録。分析バッチでのタスク起票時にG列（議事録・添付資料）へ追記される。
@@ -558,11 +559,12 @@ abc123
 
 ### 6.2 Dropbox OAuth2（リフレッシュトークンフロー）
 
-1. Dropbox App Consoleでアプリ作成（Scoped access / Full dropboxまたはApp folder。§0.3-3の決定に従う）。権限: `files.content.write` `sharing.write` `sharing.read`（`sharing.read` は共有リンク経由のダウンロード `get_shared_link_file`＝分析用画像の取得にも必須。§4.3）。
+1. 保存先アカウント（発注元。§4.2）のDropbox App Consoleでアプリ作成（Scoped access / **Full Dropbox 必須**。App folder では既存の「お客様＞お預かり画像」配下に保存できない。§0.3-3）。権限: `files.content.write` `sharing.write` `sharing.read`（`sharing.read` は共有リンク経由のダウンロード `get_shared_link_file`＝分析用画像の取得にも必須。§4.3）。
 2. 認可URL: `https://www.dropbox.com/oauth2/authorize?client_id=<APP_KEY>&response_type=code&token_access_type=offline`（**`token_access_type=offline` が必須**。これがないとリフレッシュトークンが発行されない）。
 3. ブラウザで認可し、表示された認可コードを `exchangeDropboxAuthCode('<コード>')` の引数に貼ってGASエディタから1回実行 → `POST https://api.dropboxapi.com/oauth2/token`（`grant_type=authorization_code`）でリフレッシュトークンを取得し、スクリプトプロパティへ保存。
 4. 以後は `getDropboxAccessToken_()` が `grant_type=refresh_token` で短命アクセストークンを再発行し、CacheServiceにキャッシュして使い回す。有効期間は現行実測で約4時間（`expires_in: 14400`）だが公式保証値ではないため、応答の `expires_in` から10%引いた秒数をキャッシュ期間とする実装にする。
 5. リフレッシュトークンは明示的に無効化しない限り長期有効。失効時（§4.2異常系）は手順2〜3を再実行する。
+6. **保存先アカウントの切替時**は、新アカウントで手順1〜3を再実施してスクリプトプロパティ `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` / `DROPBOX_REFRESH_TOKEN` を差し替えたうえで、`resetDropboxTokenCache()` を実行する（旧アカウントのアクセストークンが最大約3.6時間キャッシュに残るため）。その後 `checkConfiguration()` とテストアップロードで疎通確認する。
 
 ### 6.3 秘匿情報の管理区分
 
@@ -663,7 +665,8 @@ abc123
 ### 9.1 レベル1: 単体確認（GASエディタから test.gs を手動実行）
 
 - 擬似Webhookペイロード（text / image / file / sticker / join / 再送フラグ付き重複）をdoPost相当関数へ投入し、ログ追記・重複排除・顧客マスタ自動追加・分析対象外判定を確認。
-- Dropbox: サンプルBlobのアップロード → 共有リンク取得を2回実行し、初回作成と2回目（409経路）の両方が成功すること。日本語サロン名を含むパスで成功すること。共有リンク経由のダウンロード（`test_downloadSharedLinkFile`）が元データを完全復元すること。
+- Dropbox: サンプルBlobのアップロード → 共有リンク取得を2回実行し、初回作成と2回目（409経路）の両方が成功すること。日本語サロン名を含むパスで成功すること。共有リンク経由のダウンロード（`test_downloadSharedLinkFile`）が元データを完全復元すること。パス構成（`test_buildDropboxPath`）: 日付フォルダのゼロ埋めなし・サロン名直結、未設定フォールバック、パス不可文字の置換、`parseDateTime_` の往復一致。
+- セル書き込みの切り詰め（`test_truncateForCell`）: 上限内は素通し、超過時の切り詰めと省略表記、null/undefined の空文字化。
 - Gemini: 固定の会話フィクスチャでresponseSchema通りのJSONが返ること。存在しないタスクIDを返した場合に破棄されること。
 - 画像収集（`test_collectAnalysisImages`）: 拡張子→MIME判定、枚数上限（3枚）での打ち切り、未保存マーカー行・実在しないリンクのフォールバック（例外を投げない）。
 - 画像つき分析（`test_runAnalysisOnImageFixture`）: 文字入りフィクスチャ画像（image経路=JPEG版 `TEST_IMAGE_JPEG_BASE64`（MIME宣言と実体を一致させるため）、file経路=PNG版 `TEST_IMAGE_PNG_BASE64`）で両経路の起票、取得失敗時の「分析済」完了（試行回数を消費しない）、画像なしフォールバック（image400）を経由していないこと、再分析の冪等性。summaryへの画像内容の反映はconsole出力を目視確認。

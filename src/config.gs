@@ -48,7 +48,8 @@ const CONFIG = {
   LINE_DATA_API_BASE: 'https://api-data.line.me',
   DROPBOX_API_BASE: 'https://api.dropboxapi.com',
   DROPBOX_CONTENT_API_BASE: 'https://content.dropboxapi.com',
-  DROPBOX_ROOT_FOLDER: '/LINEタスク管理',
+  // 発注元の既存Dropbox運用(お客様>お預かり画像>日付別フォルダ)に合わせた保存先ルート
+  DROPBOX_ROOT_FOLDER: '/お客様/お預かり画像',
 
   // スクリプトプロパティのキー名(§2.2)
   PROP: {
