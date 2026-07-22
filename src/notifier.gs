@@ -123,7 +123,7 @@ function buildSummaryText_(tasks, options) {
   const summary = summarizeTasks_(tasks, options);
 
   const lines = [];
-  lines.push('本日のタスクサマリ(' + Utilities.formatDate(options.now, CONFIG.TIMEZONE, 'M/d') + ' 9:00頃)');
+  lines.push('本日のタスクサマリ(' + Utilities.formatDate(options.now, CONFIG.TIMEZONE, 'M/d') + ' 10:00頃)');
 
   lines.push('── 急ぎ・期限間近 ' + summary.urgentTasks.length + '件 ──');
   appendTaskLines_(lines, summary.urgentTasks, options.maxItems, function (t) {
@@ -201,7 +201,7 @@ function buildSummaryFlex_(tasks, options) {
     header: {
       type: 'box', layout: 'vertical', contents: [
         flexText_('本日のタスクサマリ', { color: FLEX_COLOR.WHITE, weight: 'bold', size: 'md' }),
-        flexText_(dateLabel + '(' + weekday + ') 9:00ごろ', { color: FLEX_COLOR.DATE, size: 'xs', margin: 'xs' })
+        flexText_(dateLabel + '(' + weekday + ') 10:00ごろ', { color: FLEX_COLOR.DATE, size: 'xs', margin: 'xs' })
       ]
     },
     body: { type: 'box', layout: 'vertical', contents: body },

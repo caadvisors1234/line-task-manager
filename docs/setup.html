@@ -489,7 +489,7 @@
             <div class="sys-title">日次サマリ</div>
             <div class="sys-desc">タスク一覧を集計しサマリ文を生成 → 社内LINEグループへPush(1日1通)</div>
           </div>
-          <span class="sys-tag">毎朝9:00頃</span>
+          <span class="sys-tag">毎朝10:00頃</span>
         </div>
       </div>
 
@@ -716,8 +716,8 @@
               </tr>
               <tr>
                 <td><code>sendDailySummary</code></td>
-                <td>毎日 9〜10時枠</td>
-                <td>発火は枠内の任意時刻(一度決まると日々ほぼ固定)。案内表記は「9:00頃」</td>
+                <td>毎日 10〜11時枠</td>
+                <td>発火は枠内の任意時刻(一度決まると日々ほぼ固定)。案内表記は「10:00頃」</td>
               </tr>
             </tbody>
           </table>
@@ -903,8 +903,8 @@
         GASのdoPostはHTTPリクエストヘッダーを取得できないため、LINE公式推奨の署名検証(X-Line-Signature)は実装できません。代替としてURLの秘密トークン＋<code>destination</code> 照合の二段防御を行います(トークンは年1回ローテーション)。
       </div></div>
       <div class="caution"><div class="d">
-        <strong>日次サマリは「9:00頃」</strong>
-        GASの日タイマートリガーは指定した1時間枠内の任意時刻に発火するため、「9:00ちょうど」は保証できません。社内への案内も「9:00頃」に統一します。
+        <strong>日次サマリは「10:00頃」</strong>
+        GASの日タイマートリガーは指定した1時間枠内の任意時刻に発火するため、「10:00ちょうど」は保証できません。社内への案内も「10:00頃」に統一します。
       </div></div>
       <div class="caution"><div class="d">
         <strong>画像・ファイルは受信時に即保存</strong>
