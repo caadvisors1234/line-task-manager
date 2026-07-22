@@ -48,6 +48,16 @@ function exchangeDropboxAuthCodeFromProp() {
 }
 
 /**
+ * キャッシュ済みアクセストークンを破棄する(GASエディタから手動実行)。
+ * Dropboxアカウント切替時は、旧アカウントのトークンが最大約3.6時間キャッシュに残るため、
+ * アプリキー・シークレット・リフレッシュトークンの差し替え後に必ず実行する(§6.2)。
+ */
+function resetDropboxTokenCache() {
+  CacheService.getScriptCache().remove(DROPBOX_TOKEN_CACHE_KEY);
+  console.log('Dropboxアクセストークンのキャッシュを破棄しました');
+}
+
+/**
  * 短命アクセストークンを取得する(§6.2 手順4)。
  * リフレッシュトークンから再発行し、expires_inの90%の期間キャッシュする。
  * 認証エラーは「Dropbox認証エラー」を含むメッセージで投げる(最重要アラートの判定に使用。§4.2)。
@@ -180,16 +190,17 @@ function headerSafeJson_(obj) {
 
 /**
  * 保存パスを組み立てる(§4.2 手順3)。
- * /LINEタスク管理/{サロン名}/{yyyyMM}/{yyyyMMdd_HHmmss}_{messageId}.{拡張子}
- * サロン名未設定時は /LINEタスク管理/_未設定/{groupId}/... に保存。
+ * /お客様/お預かり画像/{yyyy.M.d}{サロン名}/{yyyyMMdd_HHmmss}_{messageId}.{拡張子}
+ * 日付フォルダは発注元の既存運用(例: 2025.1.19旭岡店)に合わせ、ゼロ埋めなし・サロン名直結。
+ * サロン名未設定時は /お客様/お預かり画像/{yyyy.M.d}_未設定/{groupId}/... に保存。
  * 日時はWebhookイベントのtimestamp(重複配信でも不変)から生成し、パスを冪等にする。
  */
 function buildDropboxPath_(salonName, groupId, eventTimestamp, messageId, extension) {
   const date = new Date(eventTimestamp);
   const folder = salonName
-    ? sanitizePathSegment_(salonName)
-    : '_未設定/' + sanitizePathSegment_(groupId);
-  return CONFIG.DROPBOX_ROOT_FOLDER + '/' + folder + '/' + formatMonth_(date) + '/' +
+    ? formatDateDots_(date) + sanitizePathSegment_(salonName)
+    : formatDateDots_(date) + '_未設定/' + sanitizePathSegment_(groupId);
+  return CONFIG.DROPBOX_ROOT_FOLDER + '/' + folder + '/' +
     formatTimestampCompact_(date) + '_' + messageId + (extension || '');
 }
 

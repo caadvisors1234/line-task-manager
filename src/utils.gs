@@ -106,14 +106,25 @@ function formatDateTime_(date) {
   return Utilities.formatDate(date, CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
 }
 
+/**
+ * yyyy-MM-dd HH:mm:ss の文字列を Date へ戻す(formatDateTime_ の逆変換)。
+ * V8の文字列Dateパースは書式依存が強いため、部品分解で構築する。
+ * appsscript.json の timeZone と CONFIG.TIMEZONE が一致している前提(いずれもAsia/Tokyo)。
+ */
+function parseDateTime_(s) {
+  return new Date(
+    Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)),
+    Number(s.slice(11, 13)), Number(s.slice(14, 16)), Number(s.slice(17, 19)));
+}
+
 /** yyyy-MM-dd(JST) */
 function formatDate_(date) {
   return Utilities.formatDate(date, CONFIG.TIMEZONE, 'yyyy-MM-dd');
 }
 
-/** yyyyMM(JST。Dropboxの月別フォルダ用) */
-function formatMonth_(date) {
-  return Utilities.formatDate(date, CONFIG.TIMEZONE, 'yyyyMM');
+/** yyyy.M.d(JST・ゼロ埋めなし。Dropboxの日付別フォルダ用。既存運用の「2025.1.19サロン名」形式に合わせる) */
+function formatDateDots_(date) {
+  return Utilities.formatDate(date, CONFIG.TIMEZONE, 'yyyy.M.d');
 }
 
 /** yyyyMMdd_HHmmss(JST。Dropboxファイル名用) */

@@ -258,6 +258,39 @@ function test_taskRepoBasics() {
     open.some(function (t) { return t.taskId === id1; }));
 }
 
+/** buildDropboxPath_ のパス構成を確認する(純関数・API不要) */
+function test_buildDropboxPath() {
+  const ts = new Date(2025, 0, 19, 10, 30, 0).getTime();
+  assert_('日付フォルダはゼロ埋めなし・サロン名直結',
+    buildDropboxPath_('旭岡店', 'g1', ts, 'msg1', '.jpg') ===
+      '/お客様/お預かり画像/2025.1.19旭岡店/20250119_103000_msg1.jpg',
+    buildDropboxPath_('旭岡店', 'g1', ts, 'msg1', '.jpg'));
+  assert_('サロン名未設定はグループID別のフォルダへ',
+    buildDropboxPath_('', 'Cabc123', ts, 'msg2', '.png') ===
+      '/お客様/お預かり画像/2025.1.19_未設定/Cabc123/20250119_103000_msg2.png',
+    buildDropboxPath_('', 'Cabc123', ts, 'msg2', '.png'));
+  assert_('サロン名のパス不可文字は _ に置換される',
+    buildDropboxPath_('サロン/A:B', 'g1', ts, 'msg3', '') ===
+      '/お客様/お預かり画像/2025.1.19サロン_A_B/20250119_103000_msg3',
+    buildDropboxPath_('サロン/A:B', 'g1', ts, 'msg3', ''));
+  assert_('parseDateTime_ が formatDateTime_ と往復一致する',
+    formatDateTime_(parseDateTime_('2025-01-19 10:30:00')) === '2025-01-19 10:30:00',
+    formatDateTime_(parseDateTime_('2025-01-19 10:30:00')));
+}
+
+/** truncateForCell_ の切り詰め動作を確認する(純関数・シート不要) */
+function test_truncateForCell() {
+  assert_('上限内はそのまま返す', truncateForCell_('短いテキスト') === '短いテキスト');
+  assert_('null・undefinedは空文字になる',
+    truncateForCell_(null) === '' && truncateForCell_(undefined) === '');
+  const long = new Array(101).join('あいうえおかきくけこ'); // 1,000字
+  const truncated = truncateForCell_(long, 100);
+  assert_('上限超過は切り詰めて省略表記を付ける',
+    truncated === long.slice(0, 100) + '\n…(以下省略)', String(truncated.length));
+  assert_('既定上限(45,000字)以内の長文はそのまま返す',
+    truncateForCell_(long) === long);
+}
+
 // ---------------------------------------------------------------------------
 // P4: サマリ生成
 // ---------------------------------------------------------------------------

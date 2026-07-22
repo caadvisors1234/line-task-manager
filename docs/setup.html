@@ -533,7 +533,7 @@
       </div>
       <div class="prep">
         <div class="t">Dropboxアカウント</div>
-        <div class="d">App Consoleでアプリを作成できる権限。受領データの保存先(容量は契約に依存)。</div>
+        <div class="d">受領データの保存先(容量は契約に依存)。保存先は発注元アカウントの「お客様＞お預かり画像」配下のため、<em>発注元アカウント</em>でApp Consoleのアプリ作成と認可ができること。</div>
       </div>
       <div class="prep">
         <div class="t">Googleアカウント</div>
@@ -624,7 +624,7 @@
       <div class="ss-body">
         <div class="mini-steps">
           <div class="mini-step"><div class="d">
-            App Consoleで<strong>アプリを作成</strong>します。アクセスタイプは Scoped access、権限(スコープ)は <code>files.content.write</code> / <code>sharing.write</code> / <code>sharing.read</code> を付与します。<code>APP_KEY</code> / <code>APP_SECRET</code> を控えます。
+            保存先アカウント(発注元)のApp Consoleで<strong>アプリを作成</strong>します。アクセスタイプは Scoped access の <strong>Full Dropbox</strong>(App folder では既存の「お客様＞お預かり画像」配下に保存できません)、権限(スコープ)は <code>files.content.write</code> / <code>sharing.write</code> / <code>sharing.read</code> を付与します。<code>APP_KEY</code> / <code>APP_SECRET</code> を控えます。
           </div></div>
           <div class="mini-step"><div class="d">
             次の認可URLをブラウザで開いて認可し、表示される<strong>認可コード</strong>を控えます。
@@ -635,7 +635,8 @@
             GASエディタから <code>exchangeDropboxAuthCode('&lt;認可コード&gt;')</code> を<strong>1回だけ実行</strong>し、リフレッシュトークンを取得してスクリプトプロパティ <code>DROPBOX_REFRESH_TOKEN</code> へ保存します。以後のアクセストークンは実行時に自動再発行されます(有効期間約4時間・キャッシュ運用)。
           </div></div>
         </div>
-        <div class="ss-note">手順2〜3は連続して実施します(認可コードは短時間で失効)。GASプロジェクトが未作成の場合は、先に STEP 4 の手順1(プロジェクト作成・コード反映)まで済ませてから戻ってください。</div>
+        <div class="ss-note">手順2〜3は連続して実施します(認可コードは短時間で失効)。GASプロジェクトが未作成の場合は、先に STEP 4 の手順1(プロジェクト作成・コード反映)まで済ませてから戻ってください。<br>
+        <strong>保存先アカウントを切り替える場合:</strong> 新アカウントで本STEPを再実施してスクリプトプロパティ <code>DROPBOX_APP_KEY</code> / <code>DROPBOX_APP_SECRET</code> / <code>DROPBOX_REFRESH_TOKEN</code> を差し替えたうえで、<code>resetDropboxTokenCache()</code> を実行します(旧アカウントのアクセストークンが最大約3.6時間キャッシュに残るため)。その後 <code>checkConfiguration()</code> とテストアップロードで疎通を確認します。</div>
       </div>
     </div>
 
@@ -922,7 +923,7 @@
   </section>
 
   <div class="doc-footer">
-    <p>正本参照: 設計・仕様の詳細は <code>documents/implementation-plan.md</code> 版1.1(GAS構成 §2 / シート設計 §3 / 機能別詳細設計 §4 / セキュリティ §6 / 制約・リスク一覧 §7)を参照してください。承認済み提案書(What の正本)は <a href="./index.html">docs/index.html</a> です。</p>
+    <p>正本参照: 設計・仕様の詳細は <code>documents/implementation-plan.md</code> 版1.2(GAS構成 §2 / シート設計 §3 / 機能別詳細設計 §4 / セキュリティ §6 / 制約・リスク一覧 §7)を参照してください。承認済み提案書(What の正本)は <a href="./index.html">docs/index.html</a> です。</p>
     <p>株式会社サイバーアクセル・アドバイザーズ — LINEタスク管理Bot 構築手順書 版1.0(2026年7月9日)</p>
   </div>
 
