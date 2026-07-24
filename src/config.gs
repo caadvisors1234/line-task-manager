@@ -50,6 +50,8 @@ const CONFIG = {
   DROPBOX_CONTENT_API_BASE: 'https://content.dropboxapi.com',
   // 発注元の既存Dropbox運用(お客様>お預かり画像>日付別フォルダ)に合わせた保存先ルート
   DROPBOX_ROOT_FOLDER: '/お客様/お預かり画像',
+  // 日本の祝日一覧(内閣府データ由来。前年〜翌年分。日次サマリの土日祝スキップ判定に使用。§4.4)
+  HOLIDAYS_JP_URL: 'https://holidays-jp.github.io/api/v1/date.json',
 
   // スクリプトプロパティのキー名(§2.2)
   PROP: {

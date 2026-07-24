@@ -718,7 +718,7 @@
               <tr>
                 <td><code>sendDailySummary</code></td>
                 <td>毎日 10〜11時枠</td>
-                <td>発火は枠内の任意時刻(一度決まると日々ほぼ固定)。案内表記は「10:00頃」</td>
+                <td>発火は枠内の任意時刻(一度決まると日々ほぼ固定)。案内表記は「10:00頃」。土日祝・年末年始(12/29〜1/3)は関数内で判定して送信をスキップ</td>
               </tr>
             </tbody>
           </table>
@@ -906,6 +906,10 @@
       <div class="caution"><div class="d">
         <strong>日次サマリは「10:00頃」</strong>
         GASの日タイマートリガーは指定した1時間枠内の任意時刻に発火するため、「10:00ちょうど」は保証できません。社内への案内も「10:00頃」に統一します。
+      </div></div>
+      <div class="caution"><div class="d">
+        <strong>土日祝・年末年始はサマリを送信しない</strong>
+        トリガー自体は毎日発火しますが、土日・祝日・年末年始(12/29〜1/3)は <code>sendDailySummary</code> 内で判定して送信をスキップします。祝日はholidays-jp API(内閣府データ由来)で判定し、取得に失敗した日はエラーログに記録の上、安全側(送信する)に倒します。
       </div></div>
       <div class="caution"><div class="d">
         <strong>画像・ファイルは受信時に即保存</strong>

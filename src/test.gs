@@ -414,6 +414,21 @@ function test_buildSummaryFlex() {
     externalBrowserUrl_('https://example.com/?a=1') === 'https://example.com/?a=1&openExternalBrowser=1');
 }
 
+/** 土日祝・年末年始のサマリスキップ判定を確認する(祝日はフィクスチャで与える) */
+function test_isSummarySkipDay() {
+  const holidays = { '2026-02-11': '建国記念の日' };
+  assert_('祝日でない平日は送信する', isSummarySkipDay_(new Date(2026, 6, 27), holidays) === false);   // 月曜
+  assert_('土曜はスキップ', isSummarySkipDay_(new Date(2026, 6, 25), holidays) === true);
+  assert_('日曜はスキップ', isSummarySkipDay_(new Date(2026, 6, 26), holidays) === true);
+  assert_('祝日(平日)はスキップ', isSummarySkipDay_(new Date(2026, 1, 11), holidays) === true);        // 水曜
+  assert_('祝日一覧が空なら平日として送信する(取得失敗時のフェイルオープン)',
+    isSummarySkipDay_(new Date(2026, 1, 11), {}) === false);
+  assert_('12/29(平日)は年末年始としてスキップ', isSummarySkipDay_(new Date(2026, 11, 29), holidays) === true); // 火曜
+  assert_('1/3(平日)は年末年始としてスキップ', isSummarySkipDay_(new Date(2028, 0, 3), holidays) === true);     // 月曜
+  assert_('12/28(平日)は送信する', isSummarySkipDay_(new Date(2026, 11, 28), holidays) === false);      // 月曜
+  assert_('1/4(平日)は送信する', isSummarySkipDay_(new Date(2028, 0, 4), holidays) === false);          // 火曜
+}
+
 // ---------------------------------------------------------------------------
 // P5: Webhook受信系(LINE不要。プロフィール取得は失敗→「(取得不可)」で続行)
 // ---------------------------------------------------------------------------

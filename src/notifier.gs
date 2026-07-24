@@ -18,6 +18,18 @@ const JP_WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 /** 日次サマリを社内グループへ送信する(日次トリガー対象) */
 function sendDailySummary() {
   try {
+    // 土日祝・年末年始(12/29〜1/3)は送信しない。祝日一覧の取得失敗時は判定なしで送信を続行
+    let holidays = {};
+    try {
+      holidays = fetchJpHolidays_();
+    } catch (e) {
+      logError_('sendDailySummary(holidays)', e);
+    }
+    if (isSummarySkipDay_(new Date(), holidays)) {
+      console.log('土日祝・年末年始のため日次サマリをスキップしました');
+      return;
+    }
+
     const settings = getSettings_();
 
     // 通数残量チェック(§4.4 手順1)。取得失敗時はチェックをスキップして送信は続行
@@ -71,6 +83,35 @@ function sendDailySummary() {
       'summary_fail'
     );
   }
+}
+
+/**
+ * 日本の祝日一覧を holidays-jp API(内閣府データ由来)から取得する(前年〜翌年分)。
+ * 戻り値: { 'yyyy-MM-dd': 祝日名 }。失敗時はthrow(呼び出し側で握って送信を続行する)
+ */
+function fetchJpHolidays_() {
+  const response = fetchWithRetry_(CONFIG.HOLIDAYS_JP_URL, {});
+  if (response.getResponseCode() !== 200) {
+    throw new Error('holidays-jp APIの取得に失敗しました(HTTP ' + response.getResponseCode() + ')');
+  }
+  const holidays = JSON.parse(response.getContentText());
+  // JSON.parse('null') 等はthrowしないため、オブジェクト以外は取得失敗として扱う
+  if (!holidays || typeof holidays !== 'object') {
+    throw new Error('holidays-jp APIの応答が想定外の形式です');
+  }
+  return holidays;
+}
+
+/**
+ * 日次サマリを送信しない日か判定する純関数(土日・祝日・年末年始12/29〜1/3)。
+ * holidays: fetchJpHolidays_() の戻り値({ 'yyyy-MM-dd': 祝日名 })
+ */
+function isSummarySkipDay_(date, holidays) {
+  const weekday = Utilities.formatDate(date, CONFIG.TIMEZONE, 'u'); // 1=月〜7=日
+  if (weekday === '6' || weekday === '7') return true;
+  if (holidays[formatDate_(date)]) return true;
+  const monthDay = Utilities.formatDate(date, CONFIG.TIMEZONE, 'MM-dd');
+  return monthDay >= '12-29' || monthDay <= '01-03';
 }
 
 /**
