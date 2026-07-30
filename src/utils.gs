@@ -22,6 +22,11 @@ function getProp_(key) {
   return PropertiesService.getScriptProperties().getProperty(key);
 }
 
+/** スクリプトプロパティへ値を保存する */
+function setProp_(key, value) {
+  PropertiesService.getScriptProperties().setProperty(key, value);
+}
+
 /**
  * ScriptLock保護下で処理を実行する。§7-17
  * ロック区間は最小化すること(シート追記・採番のみ。外部API呼び出しをロック内に入れない)。

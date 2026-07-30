@@ -487,7 +487,7 @@
           <div>
             <div class="sys-eyebrow">系統 3</div>
             <div class="sys-title">日次サマリ</div>
-            <div class="sys-desc">タスク一覧を集計しサマリ文を生成 → 社内LINEグループへPush(1日1通)</div>
+            <div class="sys-desc">前回送信以降の新着タスクを抽出しサマリ文を生成 → 社内LINEグループへPush(1日1通)</div>
           </div>
           <span class="sys-tag">毎朝10:00頃</span>
         </div>
@@ -743,6 +743,7 @@
           <tr><td><code>DROPBOX_REFRESH_TOKEN</code></td><td>アクセストークン再発行</td><td>初回認可フロー(STEP 2)で取得</td></tr>
           <tr><td><code>SPREADSHEET_ID</code></td><td>対象スプレッドシート</td><td>作成したシートのURL</td></tr>
           <tr><td><code>SUMMARY_GROUP_ID</code></td><td>日次サマリの宛先(社内グループ)</td><td>Botをグループに入れてWebhookログから取得</td></tr>
+          <tr><td><code>SUMMARY_LAST_SENT_AT</code></td><td>日次サマリの最終送信日時(新着の対象窓の起点)</td><td><strong>手動設定不要</strong>(送信成功時に自動更新。未設定時は前営業日10:00で代替)</td></tr>
           <tr><td><code>ADMIN_GROUP_ID</code></td><td>エラー・警告通知の宛先</td><td>同上(通数節約のため少人数の管理者グループを推奨)</td></tr>
         </tbody>
       </table>
@@ -780,7 +781,7 @@
       </div></div>
       <div class="check"><div class="d">
         <strong><code>sendDailySummary()</code> の手動実行</strong>
-        <span class="expect">社内グループ(テスト時はテストグループ宛に設定変更)へFlex形式のサマリ(墨色ヘッダー帯＋「タスク一覧を開く」ボタン)が届く</span>
+        <span class="expect">社内グループ(テスト時はテストグループ宛に設定変更)へFlex形式の新着連絡サマリ(墨色ヘッダー帯＋「タスク一覧を開く」ボタン)が届く。注意: 手動実行も送信成功時に <code>SUMMARY_LAST_SENT_AT</code> を更新するため、翌朝のサマリは「手動実行以降の新着」になる(本番運用中にテスト実行した場合は、必要に応じてスクリプトプロパティを元の値へ戻す)</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>通知先を本番の社内グループへ切り替え</strong>
@@ -801,7 +802,7 @@
           <tr><td>Webhook処理</td><td>擬似ペイロード(text / image / file / sticker / join / 重複)で、ログ追記・重複排除・顧客マスタ自動追加・分析対象外判定を確認</td></tr>
           <tr><td>Dropbox</td><td>アップロード → 共有リンク取得を2回実行し、初回作成と2回目(409経路)の両方が成功。日本語サロン名を含むパスで成功</td></tr>
           <tr><td>Gemini</td><td>固定の会話フィクスチャでresponseSchema通りのJSONが返る。存在しないタスクIDを返した場合に破棄される</td></tr>
-          <tr><td>サマリ生成</td><td>フィクスチャのタスク群から所定フォーマットの文字列が組み立つ。件数超過時の切り詰め</td></tr>
+          <tr><td>サマリ生成</td><td>フィクスチャのタスク群から新着一覧(到着順)のフォーマット通りに組み立つ。[急ぎ]判定・対象窓の境界・初回フォールバック・件数超過時の切り詰め・0件時の短文</td></tr>
         </tbody>
       </table>
     </div>
@@ -815,7 +816,7 @@
           <tr><td>S1</td><td>新規依頼「クーポン画像を金曜までに差し替えてください」</td><td>起票、種別=新規依頼、期限=直近の金曜日付、タスク状況=未対応</td></tr>
           <tr><td>S2</td><td>進行承認: 自社「下書き登録いたしました。問題なければ反映いたします」→ お客様「ありがとうございます!」</td><td>起票、種別=回答・承認、タスク状況=<em>反映待ち</em>、作業内容に反映作業の旨</td></tr>
           <tr><td>S3</td><td>単なるお礼・雑談(文脈上アクション予告なし)</td><td>起票されない(種別=雑談・お礼)</td></tr>
-          <tr><td>S4</td><td>既存未完了タスクへの回答</td><td>関連タスクIDが正しく付与。曖昧なケースで要確認フラグ＋サマリに「※要確認」</td></tr>
+          <tr><td>S4</td><td>既存未完了タスクへの回答</td><td>関連タスクIDが正しく付与。曖昧なケースで要確認フラグ＋翌朝のサマリに「※要確認」</td></tr>
           <tr><td>S5</td><td>画像・ファイル送付</td><td>受信直後にDropbox保存、起票行のG列(議事録・添付資料)にリンク</td></tr>
           <tr><td>S6</td><td>判断に迷う新規依頼</td><td>返信提案列に一次受け定型文が下書きされる。通常依頼ではテンプレート準拠の返信案</td></tr>
           <tr><td>S7</td><td>手動列の保護: B・C列と、更新後のA・H列に記入した状態で、同グループの再分析・新規起票・添付追記を発生させる</td><td>手動記入がひとつも上書きされない</td></tr>
@@ -829,7 +830,7 @@
       <table>
         <thead><tr><th>観点</th><th>確認内容</th></tr></thead>
         <tbody>
-          <tr><td>定常運転</td><td>毎朝の日次サマリが届き、前日のタスク状況更新(お客様連絡待ち・反映待ちの件数等)が反映される</td></tr>
+          <tr><td>定常運転</td><td>毎朝の日次サマリが届き、前営業日の通知以降に到着した連絡(新規起票タスク)が過不足なく一覧される</td></tr>
           <tr><td>異常系</td><td>GeminiのAPIキーを一時無効化 → 未分析滞留と管理者通知を確認、復旧後に自動追い付き。Dropboxリフレッシュトークン無効化 → 最重要アラート</td></tr>
           <tr><td>負荷</td><td>100件/日相当の連投で、バッチが6分制限・トリガー90分/日に収まることをApps Scriptダッシュボードで確認</td></tr>
         </tbody>

@@ -70,7 +70,7 @@ function buildResponseSchema_() {
         },
         needsTask: { type: 'boolean' },
         summary: { type: 'string', description: '作業内容の1行サマリ' },
-        urgency: { type: 'string', enum: ['高', '中', '低'] },
+        urgency: { type: 'string', enum: [URGENCY.HIGH, URGENCY.MID, URGENCY.LOW] },
         dueDate: { type: 'string', nullable: true, description: 'yyyy-MM-dd' },
         relatedTaskId: { type: 'string', nullable: true },
         needsReview: { type: 'boolean' },

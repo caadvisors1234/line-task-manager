@@ -295,41 +295,67 @@ function test_truncateForCell() {
 // P4: サマリ生成
 // ---------------------------------------------------------------------------
 
-/** フィクスチャのタスク群からサマリ文を組み立てて出力する(§4.4のフォーマット確認) */
+/** サマリ用フィクスチャ(getTasksForSummary_の戻り値と同形)。到着順の逆(降順)で返し、ソートを検証できるようにする */
+function summaryFixtureTasks_(now) {
+  const today = formatDate_(now);
+  const t = function (hoursAgo) { return formatDateTime_(new Date(now.getTime() - hoursAgo * 60 * 60 * 1000)); };
+  return [
+    { createdAt: t(1), dueText: '', salonName: 'サロンC様', summary: '掲載文の修正依頼', urgency: URGENCY.MID, needsReview: true, dueDate: '' },
+    { createdAt: t(2), dueText: '毎月希望', salonName: 'アース大槻様', summary: 'インスタ投稿用画像の依頼', urgency: URGENCY.MID, needsReview: false, dueDate: formatDatePlusDays_(now, 10) },
+    { createdAt: t(3), dueText: '6/30〜7/1', salonName: '銀座整体院様', summary: '開始日変更の反映', urgency: URGENCY.LOW, needsReview: false, dueDate: formatDatePlusDays_(now, 1) },
+    { createdAt: t(4), dueText: '本日17:00', salonName: 'サロンB様', summary: 'キャンペーン用バナーの当日修正', urgency: URGENCY.HIGH, needsReview: false, dueDate: today }
+  ];
+}
+
+/** フィクスチャのタスク群から新着連絡サマリ文を組み立てて出力する(§4.4のフォーマット確認) */
 function test_buildSummary() {
   const now = new Date();
-  const today = formatDate_(now);
-  const tasks = [
-    { taskId: 'T-9001', dueText: '本日17:00', salonName: 'サロンB様', summary: 'キャンペーン用バナーの当日修正', status: STATUS.TASK.URGENT, needsReview: false, dueDate: today },
-    { taskId: 'T-9002', dueText: '6/30〜7/1', salonName: '銀座整体院様', summary: '開始日変更の反映', status: STATUS.TASK.AWAITING_APPLY, needsReview: false, dueDate: formatDatePlusDays_(now, 1) },
-    { taskId: 'T-9003', dueText: '毎月希望', salonName: 'アース大槻様', summary: 'インスタ投稿用画像の依頼', status: STATUS.TASK.TODO, needsReview: false, dueDate: '' },
-    { taskId: 'T-9004', dueText: '', salonName: 'サロンC様', summary: '掲載文の修正依頼', status: STATUS.TASK.REQUESTED, needsReview: true, dueDate: '' },
-    { taskId: 'T-9005', dueText: '', salonName: 'ガーデンウシワカマル様', summary: '看板画像の確認', status: STATUS.TASK.TODO, needsReview: false, dueDate: '' },
-    { taskId: 'T-9006', dueText: '', salonName: 'サロンD様', summary: 'ロゴ差し替え', status: STATUS.TASK.AWAITING_CUSTOMER, needsReview: false, dueDate: '' },
-    { taskId: 'T-9007', dueText: '', salonName: 'サロンE様', summary: 'クーポン修正', status: STATUS.TASK.AWAITING_CUSTOMER, needsReview: false, dueDate: '' },
-    // 完了済み・対象外は getTasksForSummary_ 側で除外される想定のため含めない
-  ];
-  const text = buildSummaryText_(tasks, {
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const tasks = summaryFixtureTasks_(now);
+  const options = {
     now: now,
+    since: since,
     dueSoonDays: 3,
     maxItems: 15,
     errorCount: 1,
     unnamedGroupCount: 1,
     sheetUrl: 'https://docs.google.com/spreadsheets/d/xxxx'
-  });
+  };
+  const text = buildSummaryText_(tasks, options);
   console.log(text);
-  assert_('急ぎ・期限間近が2件', text.indexOf('── 急ぎ・期限間近 2件 ──') !== -1);
-  assert_('[急ぎ]ラベル付き', text.indexOf('[急ぎ] サロンB様|キャンペーン用バナーの当日修正(本日17:00)') !== -1);
-  assert_('未対応・依頼中が3件', text.indexOf('── 未対応・依頼中 3件 ──') !== -1);
-  assert_('※要確認の付記', text.indexOf('サロンC様|掲載文の修正依頼 ※要確認') !== -1);
-  assert_('件数のみ区分', text.indexOf('── お客様連絡待ち 2件|反映待ち 1件 ──') !== -1);
+  assert_('見出しが新着連絡サマリ', text.indexOf('新着連絡サマリ(') === 0);
+  assert_('対象行に起点と件数', text.indexOf(' 以降の新着 4件') !== -1);
+  assert_('緊急度=高は[急ぎ]付き',
+    text.indexOf('|サロンB様|キャンペーン用バナーの当日修正(本日17:00)[急ぎ]') !== -1);
+  assert_('期限間近(緊急度=低)も[急ぎ]付き',
+    text.indexOf('|銀座整体院様|開始日変更の反映(6/30〜7/1)[急ぎ]') !== -1);
+  assert_('緊急度=中・期限が遠い行はラベルなし',
+    text.indexOf('|アース大槻様|インスタ投稿用画像の依頼(毎月希望)\n') !== -1);
+  assert_('※要確認の付記', text.indexOf('|サロンC様|掲載文の修正依頼 ※要確認') !== -1);
+  assert_('降順で与えても到着順(昇順)に並ぶ',
+    text.indexOf('サロンB様') < text.indexOf('銀座整体院様') &&
+    text.indexOf('銀座整体院様') < text.indexOf('アース大槻様') &&
+    text.indexOf('アース大槻様') < text.indexOf('サロンC様'));
+  assert_('行頭に到着時刻(M/d H:mm)が付く',
+    text.indexOf(formatCreatedShort_(tasks[3].createdAt) + '|サロンB様|') !== -1);
   assert_('分析失敗の表示', text.indexOf('分析失敗1件') !== -1);
+  assert_('サロン名未設定の警告', text.indexOf('※サロン名未設定のグループが1件') !== -1);
+  assert_('詳細URL行', text.indexOf('詳細: ' + options.sheetUrl) !== -1);
 
   // 切り詰め(5,000文字対策)の確認
   const truncated = buildSummaryText_(tasks, {
-    now: now, dueSoonDays: 3, maxItems: 2, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
+    now: now, since: since, dueSoonDays: 3, maxItems: 2, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
   });
-  assert_('最大表示件数での切り詰め', truncated.indexOf('ほか1件はシート参照') !== -1);
+  assert_('最大表示件数での切り詰め', truncated.indexOf('ほか2件はシート参照') !== -1);
+
+  // 0件時(生存確認を兼ねて短文を送る。警告行・詳細URLは維持)
+  const empty = buildSummaryText_([], {
+    now: now, since: since, dueSoonDays: 3, maxItems: 15, errorCount: 1, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
+  });
+  console.log(empty);
+  assert_('0件時は「新着はありません」', empty.indexOf(' 以降の新着はありません') !== -1);
+  assert_('0件時も分析失敗の警告は残る', empty.indexOf('分析失敗1件') !== -1);
+  assert_('0件時も詳細URL行は残る', empty.indexOf('詳細: https://example.com') !== -1);
 }
 
 /** Flexのcontents木を再帰的にたどり、全textコンポーネントの文字列を収集する(検証用) */
@@ -349,18 +375,10 @@ function collectFlexTexts_(node, acc) {
 /** Flexサマリの構造・文言・切り詰め・0件時・サイズ上限を確認する(§4.4) */
 function test_buildSummaryFlex() {
   const now = new Date();
-  const today = formatDate_(now);
-  const tasks = [
-    { taskId: 'T-9001', dueText: '本日17:00', salonName: 'サロンB様', summary: 'キャンペーン用バナーの当日修正', status: STATUS.TASK.URGENT, needsReview: false, dueDate: today },
-    { taskId: 'T-9002', dueText: '6/30〜7/1', salonName: '銀座整体院様', summary: '開始日変更の反映', status: STATUS.TASK.AWAITING_APPLY, needsReview: false, dueDate: formatDatePlusDays_(now, 1) },
-    { taskId: 'T-9003', dueText: '毎月希望', salonName: 'アース大槻様', summary: 'インスタ投稿用画像の依頼', status: STATUS.TASK.TODO, needsReview: false, dueDate: '' },
-    { taskId: 'T-9004', dueText: '', salonName: 'サロンC様', summary: '掲載文の修正依頼', status: STATUS.TASK.REQUESTED, needsReview: true, dueDate: '' },
-    { taskId: 'T-9005', dueText: '', salonName: 'ガーデンウシワカマル様', summary: '看板画像の確認', status: STATUS.TASK.TODO, needsReview: false, dueDate: '' },
-    { taskId: 'T-9006', dueText: '', salonName: 'サロンD様', summary: 'ロゴ差し替え', status: STATUS.TASK.AWAITING_CUSTOMER, needsReview: false, dueDate: '' },
-    { taskId: 'T-9007', dueText: '', salonName: 'サロンE様', summary: 'クーポン修正', status: STATUS.TASK.AWAITING_CUSTOMER, needsReview: false, dueDate: '' }
-  ];
+  const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const tasks = summaryFixtureTasks_(now);
   const options = {
-    now: now, dueSoonDays: 3, maxItems: 15, errorCount: 1, unnamedGroupCount: 1,
+    now: now, since: since, dueSoonDays: 3, maxItems: 15, errorCount: 1, unnamedGroupCount: 1,
     sheetUrl: 'https://docs.google.com/spreadsheets/d/xxxx'
   };
   const flex = buildSummaryFlex_(tasks, options);
@@ -376,36 +394,55 @@ function test_buildSummaryFlex() {
   assert_('ボタンがアクセント色', button.color === FLEX_COLOR.ACCENT);
 
   const texts = collectFlexTexts_(contents);
-  assert_('区分の件数表示', texts.indexOf('2件') !== -1 && texts.indexOf('3件') !== -1);
-  assert_('急ぎラベル付きタイトル', texts.indexOf('急ぎ｜サロンB様') !== -1);
-  assert_('期限ラベル付きタイトル', texts.indexOf('期限｜銀座整体院様') !== -1);
-  assert_('期限の補足行', texts.indexOf('期限: 本日17:00') !== -1);
-  assert_('要確認の付記', texts.indexOf('※要確認') !== -1);
-  assert_('件数のみ区分', texts.indexOf('お客様連絡待ち 2件｜反映待ち 1件') !== -1);
+  const contains = function (fragment) {
+    return texts.some(function (t) { return t.indexOf(fragment) !== -1; });
+  };
+  assert_('ヘッダーが新着連絡サマリ', texts.indexOf('新着連絡サマリ') !== -1);
+  assert_('対象範囲の起点表示', contains(' 以降の新着'));
+  assert_('新着件数の表示', texts.indexOf('4件') !== -1);
+  assert_('緊急度=高は急ぎラベル付きタイトル', texts.indexOf('急ぎ｜サロンB様') !== -1);
+  assert_('期限間近(緊急度=低)も急ぎラベル付き', texts.indexOf('急ぎ｜銀座整体院様') !== -1);
+  assert_('急ぎでない行はサロン名のみ', texts.indexOf('アース大槻様') !== -1);
+  assert_('meta行に受信時刻', contains('受信 ' + formatCreatedShort_(tasks[3].createdAt)));
+  assert_('meta行に期限', contains('期限: 本日17:00'));
+  assert_('要確認の付記', contains('※要確認'));
   assert_('分析失敗の表示', texts.indexOf('分析失敗1件(メッセージログを確認してください)') !== -1);
+  assert_('サロン名未設定の警告', contains('サロン名未設定のグループが1件'));
   assert_('空文字のtextコンポーネントがない(HTTP 400対策)',
     texts.every(function (t) { return t.length > 0; }));
+
+  // サロン名・作業内容が空のタスクでも空文字textを生成しない(HTTP 400対策の分岐確認)
+  const sparse = buildSummaryFlex_(
+    [{ createdAt: formatDateTime_(now), dueText: '', salonName: '', summary: '', urgency: URGENCY.MID, needsReview: false, dueDate: '' }],
+    { now: now, since: since, dueSoonDays: 3, maxItems: 15, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com' }
+  );
+  const sparseTexts = collectFlexTexts_(sparse.contents);
+  assert_('空フィールドのタスクでも空文字textがない',
+    sparseTexts.every(function (t) { return t.length > 0; }) &&
+    sparseTexts.indexOf('(サロン名未設定)') !== -1);
   // 400字は自主上限(仕様上限は1,500字。通知欄で読める短さを保つ)
   assert_('altTextが件数入りの短文',
-    flex.altText.indexOf('急ぎ・期限間近2件') !== -1 && flex.altText.length > 0 && flex.altText.length <= 400,
+    flex.altText.indexOf('新着4件') !== -1 && flex.altText.length > 0 && flex.altText.length <= 400,
     flex.altText);
   assert_('JSONサイズが上限内',
     Utilities.newBlob(JSON.stringify(contents)).getBytes().length < 30 * 1024);
 
   // 切り詰め(サイズ対策。テキスト版と同じ規則)
   const truncated = buildSummaryFlex_(tasks, {
-    now: now, dueSoonDays: 3, maxItems: 2, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
+    now: now, since: since, dueSoonDays: 3, maxItems: 2, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
   });
   assert_('最大表示件数での切り詰め',
-    collectFlexTexts_(truncated.contents).indexOf('ほか1件はシート参照') !== -1);
+    collectFlexTexts_(truncated.contents).indexOf('ほか2件はシート参照') !== -1);
 
-  // 0件時(毎朝同じ構造のbubbleが届く)
+  // 0件時(生存確認を兼ねて同じ構造のbubbleが届く)
   const empty = buildSummaryFlex_([], {
-    now: now, dueSoonDays: 3, maxItems: 15, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
+    now: now, since: since, dueSoonDays: 3, maxItems: 15, errorCount: 0, unnamedGroupCount: 0, sheetUrl: 'https://example.com'
   });
   const emptyTexts = collectFlexTexts_(empty.contents);
-  assert_('0件時も「なし」表示で同構造のbubbleが生成される',
-    empty.contents.type === 'bubble' && emptyTexts.indexOf('なし') !== -1 && emptyTexts.indexOf('0件') !== -1);
+  assert_('0件時は「新着の連絡はありません」+0件表示の同構造bubble',
+    empty.contents.type === 'bubble' &&
+    emptyTexts.indexOf('新着の連絡はありません') !== -1 && emptyTexts.indexOf('0件') !== -1);
+  assert_('0件時のaltText', empty.altText.indexOf('新着はありません') !== -1, empty.altText);
 
   // 外部ブラウザで開くためのパラメータ付与(LINE内ブラウザのGoogle未ログイン対策)
   assert_('外部ブラウザ用パラメータの付与',
@@ -427,6 +464,69 @@ function test_isSummarySkipDay() {
   assert_('1/3(平日)は年末年始としてスキップ', isSummarySkipDay_(new Date(2028, 0, 3), holidays) === true);     // 月曜
   assert_('12/28(平日)は送信する', isSummarySkipDay_(new Date(2026, 11, 28), holidays) === false);      // 月曜
   assert_('1/4(平日)は送信する', isSummarySkipDay_(new Date(2028, 0, 4), holidays) === false);          // 火曜
+}
+
+/** [急ぎ]判定(緊急度=高 または 期限間近)を確認する(純関数) */
+function test_isUrgentTask() {
+  const now = new Date();
+  const dueLimit = formatDatePlusDays_(now, 3);
+  assert_('緊急度=高は急ぎ',
+    isUrgentTask_({ urgency: URGENCY.HIGH, dueDate: '' }, dueLimit) === true);
+  assert_('緊急度=低でも期限間近なら急ぎ',
+    isUrgentTask_({ urgency: URGENCY.LOW, dueDate: formatDatePlusDays_(now, 1) }, dueLimit) === true);
+  assert_('期限当日(dueLimitちょうど)も急ぎ',
+    isUrgentTask_({ urgency: URGENCY.MID, dueDate: dueLimit }, dueLimit) === true);
+  assert_('緊急度=中で期限が遠ければ急ぎでない',
+    isUrgentTask_({ urgency: URGENCY.MID, dueDate: formatDatePlusDays_(now, 10) }, dueLimit) === false);
+  assert_('緊急度=中で期限なしは急ぎでない',
+    isUrgentTask_({ urgency: URGENCY.MID, dueDate: '' }, dueLimit) === false);
+}
+
+/** SUMMARY_LAST_SENT_AT 未設定時のフォールバック(直近の前営業日10:00)を確認する(純関数) */
+function test_fallbackLastSentAt() {
+  const holidays = { '2026-07-20': '海の日' }; // 2026-07-20は月曜
+  assert_('火曜実行→前日(月曜)の10:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 28, 10, 7, 0), {})) === '2026-07-27 10:00:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 28, 10, 7, 0), {})));
+  assert_('月曜実行→土日を遡って金曜の10:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 27, 10, 30, 0), {})) === '2026-07-24 10:00:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 27, 10, 30, 0), {})));
+  assert_('月曜が祝日なら火曜実行→前週金曜の10:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 21, 10, 0, 0), holidays)) === '2026-07-17 10:00:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 21, 10, 0, 0), holidays)));
+  assert_('1/4実行→年末年始・土日を遡って12/28の10:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2028, 0, 4, 10, 0, 0), {})) === '2027-12-28 10:00:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2028, 0, 4, 10, 0, 0), {})));
+  // 安全弁: 全日が祝日でも最大14日で打ち切る(無限ループしない)
+  const allHolidays = {};
+  for (let i = 1; i <= 20; i++) {
+    allHolidays[formatDate_(new Date(2026, 6, i))] = 'テスト祝日';
+  }
+  assert_('全日スキップでも14日前の10:00で打ち切る',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 20, 10, 0, 0), allHolidays)) === '2026-07-06 10:00:00',
+    formatDateTime_(fallbackLastSentAt_(new Date(2026, 6, 20, 10, 0, 0), allHolidays)));
+}
+
+/** getTasksForSummary_ の期間境界(> since、<= until)をシート上で確認する(開発用シートで実行) */
+function test_getTasksForSummarySince() {
+  const groupId = ensureTestGroup_('summ0000000000000000000000001', 'テストサロン様');
+  const marker = 'サマリ境界テスト ' + Utilities.getUuid();
+  const taskId = createTask_({
+    salonName: 'テストサロン様', msgType: MSG_TYPE.NEW, summary: marker,
+    status: STATUS.TASK.TODO, createdLabel: '7/30 LINE', groupId: groupId,
+    urgency: URGENCY.MID, sourceMessageId: 'testsrc-' + Utilities.getUuid()
+  });
+  const createdAt = String(findTaskRow_(taskId)[COL.TASK.CREATED_AT - 1]);
+
+  const included = getTasksForSummary_('2000-01-01 00:00:00', createdAt)
+    .filter(function (t) { return t.summary === marker; });
+  assert_('until=R列値ちょうどの行は含まれる(<=判定)', included.length === 1, createdAt);
+  assert_('urgency・createdAtがマッピングされる',
+    included.length === 1 && included[0].urgency === URGENCY.MID && included[0].createdAt === createdAt);
+
+  const excluded = getTasksForSummary_(createdAt, '2999-12-31 23:59:59')
+    .filter(function (t) { return t.summary === marker; });
+  assert_('since=R列値ちょうどの行は含まれない(>判定・二重通知防止)', excluded.length === 0);
 }
 
 // ---------------------------------------------------------------------------

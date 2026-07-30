@@ -66,7 +66,9 @@ const CONFIG = {
     SUMMARY_GROUP_ID: 'SUMMARY_GROUP_ID',
     ADMIN_GROUP_ID: 'ADMIN_GROUP_ID',
     TASK_ID_SEQ: 'TASK_ID_SEQ',
-    ANALYSIS_LOCK_UNTIL: 'ANALYSIS_LOCK_UNTIL'
+    ANALYSIS_LOCK_UNTIL: 'ANALYSIS_LOCK_UNTIL',
+    // 日次サマリの最終送信日時(yyyy-MM-dd HH:mm:ss)。送信成功時に自動更新される(§4.4)
+    SUMMARY_LAST_SENT_AT: 'SUMMARY_LAST_SENT_AT'
   }
 };
 
@@ -186,6 +188,13 @@ const TASK_STATUS_ORDER = [
   'タスク完了済み', '佐藤さん提出', '急ぎの対応', '反映待ち', 'お客様連絡待ち', '対象外'
 ];
 
+// 緊急度(§3.1 N列 / §5.3 enum。AI判定。日次サマリの[急ぎ]判定に使用)
+const URGENCY = {
+  HIGH: '高',
+  MID: '中',
+  LOW: '低'
+};
+
 // メッセージ種別(§3.1 E列 / §5.3 enum)
 const MSG_TYPE = {
   NEW: '新規依頼',
@@ -228,7 +237,7 @@ const SETTING_DEFAULTS = [
   { key: '一次受け定型文', value: '', note: 'すぐに判断できない依頼への返信提案の下書きに使用' },
   { key: '会話ウィンドウ件数', value: 10, note: '分析時にGeminiへ渡す直近会話の件数' },
   { key: 'バッチ1回の処理グループ数上限', value: 5, note: '実行時間ガード' },
-  { key: 'サマリ各区分の最大表示件数', value: 15, note: '5,000文字対策' },
+  { key: 'サマリ各区分の最大表示件数', value: 15, note: '新着一覧の最大表示件数(5,000文字対策。項目名は互換のため据え置き)' },
   { key: '通数警告のしきい値', value: 4500, note: '月次通数がこれを超えたら管理者警告' },
   { key: '期限間近の判定日数', value: 3, note: '期限が本日からこの日数以内を「期限間近」として扱う' }
 ];
