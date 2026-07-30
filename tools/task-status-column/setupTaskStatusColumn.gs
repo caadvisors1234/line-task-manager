@@ -23,14 +23,17 @@ const TS_SETTINGS = {
   //   headerRow:    見出しの行(通常 1)
   //   firstDataRow: データの開始行(1行目が見出しなら 2)
   //   lastColumnLetter: 色を塗る範囲の右端の列レター。'' なら最終列を自動判定
+  // 既定値は先方タスクシート(gid=777716634)の実レイアウトに合わせてある:
+  // 1行目=ステータス凡例行(色見本)、2行目=見出し行、3行目以降=データ。
+  // 見出し「タスク状況(進捗)」は半角括弧(実セルの表記。全角でも自動で吸収する)
   TARGETS: [
     {
       sheetId: 777716634,
       sheetName: '',
       newHeader: 'タスク状況',
-      anchorHeader: 'タスク状況（進捗）',
-      headerRow: 1,
-      firstDataRow: 2,
+      anchorHeader: 'タスク状況(進捗)',
+      headerRow: 2,
+      firstDataRow: 3,
       lastColumnLetter: ''
     }
   ],
