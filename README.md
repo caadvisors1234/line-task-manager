@@ -10,7 +10,7 @@
 - 処理基盤: Google Apps Script
 - AI分類: Gemini API(gemini-3.1-flash-lite)
 - タスク管理: Google スプレッドシート
-- 通知: 社内LINEグループへの日次サマリ配信(土日祝・年末年始12/29〜1/3はスキップ)
+- 通知: 社内LINEグループへの新着連絡サマリ配信(前回送信以降に到着した連絡の一覧。土日祝・年末年始12/29〜1/3はスキップ)
 
 ## 構成
 
@@ -22,6 +22,7 @@
 | `documents/proposal.md` | 詳細な対策案・技術仕様(旧版。仕様が食い違う場合は `docs/index.html` が正) |
 | `documents/implementation-plan.md` | 実装プラン(GAS構成・シート設計・セットアップ手順・テスト計画) |
 | `src/` | Google Apps Script 実装(clasp 管理。`rootDir: "src"`) |
+| `tools/` | 先方運用シート向けの単体設定スクリプト(Bot本体とは独立・コピペ納品用。各ツールの README 参照) |
 
 ## 開発(clasp)
 

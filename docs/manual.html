@@ -304,7 +304,6 @@
   .fx-item .w { color: #454b52; font-size: 12.5px; }
   .fx-item .m { color: #8a9199; font-size: 10.5px; margin-top: 2px; }
   .fx-sep { height: 1px; background: #e3e6e8; margin: 14px 0 0; }
-  .fx-count { font-size: 12.5px; color: #24292e; margin-top: 12px; }
   .fx-warn { color: #8a9199; font-size: 10.5px; margin-top: 9px; line-height: 1.6; }
   .fx-foot { border-top: 1px solid #e3e6e8; padding: 11px 16px 14px; }
   .fx-btn {
@@ -502,7 +501,7 @@
 
     <div class="summary">
       <div class="label">はじめに</div>
-      <p>お客様とのLINEグループのやり取りをAIが読み取り、対応が必要な依頼を<strong>「タスク一覧」シートへ自動で登録</strong>、毎朝10時ごろ<strong>社内LINEグループへ未対応の案件を通知</strong>する仕組みです。皆さんにお願いする作業は、<strong>「担当者名の記入」と「タスク状況(進捗)の更新」の2つだけ</strong>。お客様への返信はこれまでどおり担当者が行い、新しいアプリの操作を覚える必要はありません。</p>
+      <p>お客様とのLINEグループのやり取りをAIが読み取り、対応が必要な依頼を<strong>「タスク一覧」シートへ自動で登録</strong>、毎朝10時ごろ<strong>新しく届いた連絡の一覧を社内LINEグループへ通知</strong>する仕組みです。皆さんにお願いする作業は、<strong>「担当者名の記入」と「タスク状況(進捗)の更新」の2つだけ</strong>。お客様への返信はこれまでどおり担当者が行い、新しいアプリの操作を覚える必要はありません。</p>
     </div>
 
     <!-- 1. この仕組みでできること -->
@@ -544,8 +543,8 @@
         <div class="wf-node auto">
           <div>
             <div class="wf-eyebrow">社内LINEグループ</div>
-            <div class="wf-title">毎朝10時ごろ、未対応の案件を全員へ通知</div>
-            <div class="wf-desc">その日に対応すべき案件を、急ぎ・期限の近い順に整理して届けます。</div>
+            <div class="wf-title">毎朝10時ごろ、新しく届いた連絡を全員へ通知</div>
+            <div class="wf-desc">前回の通知以降に届いた連絡を、届いた順の一覧で届けます(急ぎの案件には印が付きます)。</div>
           </div>
           <div class="wf-tag auto">自動</div>
         </div>
@@ -566,12 +565,12 @@
           <div>
             <div class="wf-eyebrow">担当者</div>
             <div class="wf-title">担当者名を記入し、タスク状況を更新する</div>
-            <div class="wf-desc">タスク状況をプルダウンで選ぶと行が色分けされ、翌朝の通知にも反映されます。</div>
+            <div class="wf-desc">タスク状況をプルダウンで選ぶと行が色分けされ、進捗がひと目で分かります。</div>
           </div>
           <div class="wf-tag human">担当者</div>
         </div>
 
-        <div class="wf-loop"><span class="glyph">↻</span>この流れが毎日くり返され、未対応の案件が埋もれることを防ぎます。</div>
+        <div class="wf-loop"><span class="glyph">↻</span>この流れが毎日くり返され、連絡の見逃しを防ぎます。</div>
       </div>
 
       <div class="point">
@@ -582,41 +581,39 @@
     <!-- 2. 毎朝やること -->
     <section id="sec2">
       <h2><span class="index">02</span>毎朝やること — 通知の見方</h2>
-      <p>毎朝10時台に1回(土日・祝日・年末年始はお休み)、社内LINEグループへ「本日のタスクサマリ」が届きます。まずこの通知を確認し、その日に対応すべき案件を把握してください。</p>
+      <p>毎朝10時台に1回(土日・祝日・年末年始はお休み)、社内LINEグループへ「新着連絡サマリ」が届きます。<em>前回の通知以降に届いた新しい連絡の一覧</em>です(月曜は金曜10時以降の分)。まずこの通知を確認し、見逃している連絡がないかを把握してください。</p>
 
       <p class="mock-caption">毎朝の通知イメージ(実際の通知と同じ構成です)</p>
       <div class="line-mock">
         <p class="line-name">タスク管理</p>
         <div class="fx-bubble">
           <div class="fx-head">
-            <div class="t">本日のタスクサマリ</div>
+            <div class="t">新着連絡サマリ</div>
             <div class="d">7/14(火) 10:00ごろ</div>
           </div>
           <div class="fx-body">
-            <div class="fx-sec"><span>急ぎ・期限間近</span><span class="n">2件</span></div>
+            <div class="fx-sec"><span>7/13(月) 10:00 以降の新着</span><span class="n">4件</span></div>
+            <div class="fx-sep"></div>
             <div class="fx-item">
               <div class="s">急ぎ｜サロンB様</div>
               <div class="w">キャンペーン用バナーの当日修正</div>
-              <div class="m">期限: 本日17:00</div>
+              <div class="m">受信 7/13 10:12 期限: 本日17:00</div>
             </div>
             <div class="fx-item">
-              <div class="s">期限｜銀座整体院様</div>
+              <div class="s">急ぎ｜銀座整体院様</div>
               <div class="w">開始日変更の反映</div>
-              <div class="m">期限: 7/15〜7/16の間で更新</div>
+              <div class="m">受信 7/13 13:40 期限: 7/15〜7/16の間で更新</div>
             </div>
-            <div class="fx-sep"></div>
-            <div class="fx-sec"><span>未対応・依頼中</span><span class="n">2件</span></div>
             <div class="fx-item">
               <div class="s">アース大槻様</div>
               <div class="w">インスタ投稿用画像の依頼(毎月希望)</div>
+              <div class="m">受信 7/13 15:02</div>
             </div>
             <div class="fx-item">
               <div class="s">サロンC様</div>
               <div class="w">掲載文の修正依頼</div>
-              <div class="m">※要確認</div>
+              <div class="m">受信 7/13 16:45 ※要確認</div>
             </div>
-            <div class="fx-sep"></div>
-            <div class="fx-count">お客様連絡待ち 2件｜反映待ち 1件</div>
             <div class="fx-warn">※サロン名未設定のグループが1件あります(顧客マスタに記入してください)</div>
           </div>
           <div class="fx-foot">
@@ -627,11 +624,11 @@
 
       <h3>通知の読み方</h3>
       <ul class="plain">
-        <li><strong>急ぎ・期限間近</strong> ── タスク状況が「急ぎの対応」の案件と、期限が近い(初期設定では3日以内)案件です。期限の早い順に並びます。最優先で確認してください。</li>
-        <li><strong>未対応・依頼中</strong> ── タスク状況が「未対応」「依頼中」の案件です(上の区分に出たものは重複して表示されません)。</li>
-        <li><strong>お客様連絡待ち・反映待ち</strong> ── 件数のみの表示です。詳細はタスク一覧シートで確認してください。</li>
+        <li><strong>届いた順(受信時刻順)の一覧</strong>です。前回の通知以降に届いた連絡がすべて載ります。1件ずつ見逃しがないか確認してください。</li>
+        <li><strong>急ぎ｜</strong> ── AIが緊急度を「高」と判定した案件、または期限が近い(初期設定では3日以内)案件に付きます。最優先で確認してください。</li>
         <li><strong>※要確認</strong> ── AIが判定に自信を持てなかった印です。内容が正しいか、シートで確認してください。</li>
-        <li><strong>各区分に表示されるのは最大15件(初期設定)</strong>です。超えた分は「ほか◯件はシート参照」と表示されます。</li>
+        <li><strong>表示されるのは最大15件(初期設定)</strong>です。超えた分は「ほか◯件はシート参照」と表示されます。</li>
+        <li><strong>新着が1件もない日も「新着の連絡はありません」という通知が届きます</strong>(システムが正常に動いている確認を兼ねています)。</li>
       </ul>
 
       <div class="point">
@@ -703,7 +700,7 @@
     <!-- 4. タスク状況の更新ルール -->
     <section id="sec4">
       <h2><span class="index">04</span>タスク状況の更新ルール</h2>
-      <p>対応が進んだら、「タスク状況(進捗)」列をプルダウンから選んで更新してください。値を変えると行全体の色が自動で変わり、翌朝の通知にも反映されます。</p>
+      <p>対応が進んだら、「タスク状況(進捗)」列をプルダウンから選んで更新してください。値を変えると行全体の色が自動で変わります。(朝の通知は「新着連絡の一覧」のため、タスク状況の値は通知には影響しません。)</p>
 
       <div class="color-key">
         <div class="ck-head">タスク状況(進捗)の10区分 ── 選ぶと行がこの色に塗り分けられます</div>
@@ -722,7 +719,7 @@
       <h3>更新時のルール</h3>
       <ul class="plain">
         <li><strong>変更は必ずプルダウン(セル右の「▾」)から選んでください。</strong>手入力すると行の色が変わらないことがあります。</li>
-        <li><strong>対応がすべて終わったら「タスク完了済み」に。</strong>「タスク完了済み」または「対象外」にすると、翌朝以降の通知に表示されなくなります。</li>
+        <li><strong>対応がすべて終わったら「タスク完了済み」に。</strong>シート上でひと目で完了が分かるようになります。</li>
         <li><strong>AIが関係ないメッセージをタスクにしてしまったら、行を削除せず「対象外」に変更してください。</strong>記録として残すためです。</li>
         <li>新しく登録されるタスクの初期値は通常「未対応」です。お客様が「お願いします」等で承認された案件は「反映待ち」で登録されます。</li>
       </ul>

@@ -61,7 +61,7 @@ function getTaskRows_() {
   return sheet.getRange(2, 1, lastRow - 1, COL.TASK.LAST).getValues();
 }
 
-/** 未完了判定(「タスク完了済み」「対象外」以外。§4.4) */
+/** 未完了判定(「タスク完了済み」「対象外」以外) */
 function isOpenStatus_(status) {
   return status !== STATUS.TASK.COMPLETED && status !== STATUS.TASK.EXCLUDED;
 }
@@ -82,20 +82,31 @@ function getOpenTasksBySalon_(salonName) {
     });
 }
 
-/** 日次サマリ用の全未完了タスク(§4.4) */
-function getTasksForSummary_() {
+/**
+ * 日次サマリ用の新着タスク(§4.4)。
+ * 起票日時(R列)が sinceStr より後〜untilStr 以下の行を返す(境界: > since、<= until)。
+ * R列は yyyy-MM-dd HH:mm:ss のテキスト保存のため辞書順比較がそのまま時刻順比較になる。
+ * R列が空の行(手動追加行など)は対象外。
+ */
+function getTasksForSummary_(sinceStr, untilStr) {
   return getTaskRows_()
-    .filter(function (row) { return isOpenStatus_(String(row[COL.TASK.STATUS - 1])); })
     .map(function (row) {
+      // R・S列は手動再入力等でDate型に化けたセルを防御する(通常はasCellText_でテキスト保存
+      // されている。化けたまま String() すると英語表記になり辞書順比較が黙って壊れるため)
+      const rawCreated = row[COL.TASK.CREATED_AT - 1];
+      const rawDue = row[COL.TASK.DUE_DATE - 1];
       return {
-        taskId: String(row[COL.TASK.TASK_ID - 1]),
+        createdAt: rawCreated instanceof Date ? formatDateTime_(rawCreated) : String(rawCreated || ''),
         dueText: String(row[COL.TASK.DUE_TEXT - 1] || ''),
         salonName: String(row[COL.TASK.SALON - 1] || ''),
         summary: String(row[COL.TASK.SUMMARY - 1] || ''),
-        status: String(row[COL.TASK.STATUS - 1]),
+        urgency: String(row[COL.TASK.URGENCY - 1] || ''),
         needsReview: String(row[COL.TASK.NEEDS_REVIEW - 1] || '') !== '',
-        dueDate: String(row[COL.TASK.DUE_DATE - 1] || '')
+        dueDate: rawDue instanceof Date ? formatDate_(rawDue) : String(rawDue || '')
       };
+    })
+    .filter(function (t) {
+      return t.createdAt !== '' && t.createdAt > sinceStr && t.createdAt <= untilStr;
     });
 }
 
