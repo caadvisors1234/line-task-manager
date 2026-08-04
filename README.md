@@ -21,17 +21,20 @@
 | `docs/manual.html` | 利用マニュアル(現場スタッフ向け・GitHub Pages で公開) |
 | `documents/proposal.md` | 詳細な対策案・技術仕様(旧版。仕様が食い違う場合は `docs/index.html` が正) |
 | `documents/implementation-plan.md` | 実装プラン(GAS構成・シート設計・セットアップ手順・テスト計画) |
-| `src/` | Google Apps Script 実装(clasp 管理。`rootDir: "src"`) |
-| `tools/` | 先方運用シート向けの単体設定スクリプト(Bot本体とは独立・コピペ納品用。各ツールの README 参照) |
+| `src/` | Google Apps Script 実装(clasp 管理。`rootDir: "src"`。各ファイルの責務は implementation-plan.md §2.1 参照) |
+| `tools/hpb-status-colors/` | 先方の既存タスクシートへ「タスク状況の色分け」(条件付き書式)だけを移植する単体スクリプト(Bot本体とは独立・コピペ納品用) |
+| `tools/task-status-column/` | 先方の既存タスクシートへ「タスク状況」プルダウン列を新設し色分けする単体スクリプト(同上。列挿入を伴う点が上と異なる) |
 
 ## 開発(clasp)
 
 ```bash
 npm install -g @google/clasp
 clasp login                # 会社共用のGoogleアカウントで認証
-# .clasp.json の scriptId に対象GASプロジェクトのIDを設定してから
 clasp push                 # src/ をGASプロジェクトへ反映
 ```
+
+`.clasp.json` は設定済み(`scriptId`・`rootDir: "src"`)。別のGASプロジェクトへ反映する場合のみ
+`scriptId` を差し替える。`clasp push` が失敗する場合は [Apps Script API](https://script.google.com/home/usersettings) が ON か確認。
 
 デプロイはデプロイIDを固定し「バージョンを管理」から新バージョンを発行する
 (URLが変わるとLINE側のWebhook URL再設定が必要になるため)。
@@ -49,5 +52,5 @@ clasp push                 # src/ をGASプロジェクトへ反映
 
 ## 今後の予定
 
-- LINEチャネル・Dropboxアプリの結線と実グループでの結合テスト(documents/implementation-plan.md §8.5・§9.2)
-- 連続稼働確認(§9.3)を経て試験運用(パイロット5〜10店舗)へ移行
+- 本番環境への移行(本番用アカウントでの構築・切替。手順は docs/setup.html)
+- 連続稼働確認(documents/implementation-plan.md §9.3)を経て試験運用(パイロット5〜10店舗)へ移行し、段階的に拡大

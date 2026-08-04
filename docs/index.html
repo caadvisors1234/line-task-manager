@@ -60,6 +60,18 @@
     margin-top: 28px;
   }
 
+  /* 関連ドキュメントへの導線 */
+  .doc-nav {
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--accent);
+    background: var(--bg-soft);
+    padding: 15px 24px;
+    margin-top: 32px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+  }
+  .doc-nav a { color: var(--accent-dark); font-weight: 600; text-decoration: none; border-bottom: 1px solid #bcdfc9; }
+
   /* 提案要旨 */
   .summary {
     background: var(--bg-soft);
@@ -326,7 +338,7 @@
   .st-legend span { display: inline-flex; align-items: center; gap: 6px; }
   .st-legend .lb { color: var(--muted); }
 
-  /* 対応状況の色分け（現行シート準拠の9区分） */
+  /* 対応状況の色分け（現行シート準拠の9区分＋対象外） */
   .sw {
     display: inline-block; width: 22px; height: 14px;
     border-radius: 3px; border: 1px solid rgba(26,36,51,0.18);
@@ -341,6 +353,7 @@
   .sw.s-rush    { background: #ff2b22; }
   .sw.s-hanei   { background: #4a86d8; }
   .sw.s-cust    { background: #b6d7a8; }
+  .sw.s-excl    { background: #d9d9d9; }
 
   .color-key { border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; margin-top: 14px; }
   .color-key .ck-head {
@@ -533,6 +546,10 @@
 </header>
 
 <div class="wrap">
+
+  <div class="doc-nav">
+    本書は2026年6月19日時点の承認済み提案資料(仕様の正本)であり、一部の画面イメージは提案時点のものです。日々の使い方は<a href="./manual.html">利用マニュアル</a>を、環境構築の手順は<a href="./setup.html">構築手順書</a>を参照してください。
+  </div>
 
   <div class="summary">
     <div class="label">提案要旨</div>
@@ -768,8 +785,8 @@
     <p class="mock-caption">毎朝の通知イメージ</p>
     <div class="line-mock">
       <p class="line-name">タスク管理</p>
-      <div class="line-bubble">新着連絡サマリ(6/18(水) 10:00ごろ)
-対象: 6/17(火) 10:00 以降の新着 5件
+      <div class="line-bubble">新着連絡サマリ(6/18(木) 10:00ごろ)
+対象: 6/17(水) 10:00 以降の新着 5件
 
 6/17 10:12|サロンB様|キャンペーン用バナーの当日修正(本日17:00)<span class="badge high">急ぎ</span>
 6/17 11:05|銀座整体院様|開始日変更の反映(6/30〜7/1)<span class="badge high">急ぎ</span>
@@ -829,7 +846,7 @@
       <table>
         <thead>
           <tr>
-            <th><span class="th-dot ai"></span>対応期日</th>
+            <th><span class="th-dot man"></span>対応期日</th>
             <th><span class="th-dot man"></span>納品データ</th>
             <th><span class="th-dot man"></span>担当者名</th>
             <th><span class="th-dot ai"></span>店舗名</th>
@@ -842,9 +859,9 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="s-rush"><td>6/20(金)17:00</td><td>—</td><td>岩切</td><td>サロンB様</td><td>新規依頼</td><td>キャンペーン用バナーの当日修正</td><td>—</td><td>急ぎの対応</td><td>6/18 LINE</td><td>キャンペーンバナーの修正、6/20の17時までにお願いできますでしょうか…</td></tr>
+          <tr class="s-rush"><td>6/18(木)17:00</td><td>—</td><td>岩切</td><td>サロンB様</td><td>新規依頼</td><td>キャンペーン用バナーの当日修正</td><td>—</td><td>急ぎの対応</td><td>6/18 LINE</td><td>キャンペーンバナーの修正、本日の17時までにお願いできますでしょうか…</td></tr>
           <tr class="s-todo"><td>—</td><td>—</td><td>—</td><td>アース大槻様</td><td>新規依頼</td><td>インスタ投稿用画像の依頼（毎月希望）</td><td>—</td><td>未対応</td><td>6/18 LINE</td><td>インスタ投稿用の画像を毎月お願いしたいです…</td></tr>
-          <tr class="s-req"><td>6/30〜7/1の間で更新</td><td>—</td><td>酒見・西田</td><td>銀座整体院様</td><td>新規依頼</td><td>開始日を7/1へ変更。更新後に完了連絡</td><td>—</td><td>依頼中</td><td>6/17 確認LINE</td><td>開始日を7/1に変更お願いします。更新後にご連絡ください</td></tr>
+          <tr class="s-req"><td>6/30〜7/1の間で更新</td><td>—</td><td>酒見・西田</td><td>銀座整体院様</td><td>新規依頼</td><td>開始日を7/1へ変更。更新後に完了連絡</td><td>—</td><td>依頼中</td><td>6/17 LINE</td><td>開始日を7/1に変更お願いします。更新後にご連絡ください</td></tr>
           <tr class="s-cust"><td>—</td><td>—</td><td>西田</td><td>ガーデンウシワカマル様</td><td>質問・確認</td><td>看板画像の確認「こんな感じで大丈夫でしょうか」</td><td>看板画像.jpg（Dropbox）</td><td>お客様連絡待ち</td><td>6/17 LINE</td><td>看板はこんな感じで大丈夫でしょうか<br>(画像を受信)</td></tr>
           <tr class="s-hanei"><td>—</td><td>修正版データ（Dropbox）</td><td>田中</td><td>サロンH様</td><td>回答・承認</td><td>掲載文の修正（下書き登録済み）</td><td>—</td><td>反映待ち</td><td>6/16 LINE</td><td>修正内容を確認しました。反映お願いします</td></tr>
         </tbody>
@@ -877,8 +894,9 @@
       <div class="ck-row"><span class="sw s-rush"></span><span class="ck-name">急ぎの対応</span><span class="ck-desc">最優先。最左列に赤字で期限を記入</span></div>
       <div class="ck-row"><span class="sw s-hanei"></span><span class="ck-name">反映待ち</span><span class="ck-desc">下書き登録後、連絡まで完了したもの</span></div>
       <div class="ck-row"><span class="sw s-cust"></span><span class="ck-name">お客様連絡待ち</span><span class="ck-desc">お客様からの連絡待ち（届き次第対応）</span></div>
+      <div class="ck-row"><span class="sw s-excl"></span><span class="ck-name" style="text-decoration:line-through;">対象外</span><span class="ck-desc">AIが誤って登録したもの。行は削除せずこの値に変更（グレー・取り消し線）</span></div>
     </div>
-    <p style="margin-top:22px;">対応状況の色分けは<strong>現在の9区分をそのまま再現</strong>し、これまでと同じ感覚で運用できます。AIは新規の依頼を初期値「未対応」で追加するだけで、以降の色（タスク状況）の更新は担当者が行います。お客様から受領した画像・ファイルは<strong>AIがDropboxへ自動保存し、共有リンクを「議事録・添付資料」列に記録</strong>します（「納品データ」列は、当社が制作・納品したデータを担当者が管理します）。元のメッセージ全文も別シートに自動保存され、やり取りの経緯確認にそのまま利用できます。</p>
+    <p style="margin-top:22px;">対応状況の色分けは<strong>現在の9区分をそのまま再現</strong>し、そこにAIの誤登録を行削除なしで除外するための「対象外」を加えた<strong>10区分</strong>とします。これまでと同じ感覚で運用できます。AIは新規の依頼を初期値「未対応」で追加するだけで、以降の色（タスク状況）の更新は担当者が行います。お客様から受領した画像・ファイルは<strong>AIがDropboxへ自動保存し、共有リンクを「議事録・添付資料」列に記録</strong>します（「納品データ」列は、当社が制作・納品したデータを担当者が管理します）。元のメッセージ全文も別シートに自動保存され、やり取りの経緯確認にそのまま利用できます。</p>
   </section>
 
   <!-- 5. 導入計画 -->

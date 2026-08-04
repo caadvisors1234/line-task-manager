@@ -424,7 +424,7 @@
   <div class="header-inner">
     <div class="doc-meta">
       <span>社内資料 — 実装者向け</span>
-      <span>2026年7月9日　版 1.0</span>
+      <span>2026年8月4日　版 1.1</span>
     </div>
     <h1>LINEタスク管理Bot 構築手順書</h1>
     <p class="subtitle">株式会社サイバーアクセル・アドバイザーズ — お客様LINEにおける対応漏れ防止システム</p>
@@ -436,7 +436,7 @@
 
   <div class="summary">
     <div class="label">本書の位置づけ</div>
-    <p>本書は、実装プラン <strong>documents/implementation-plan.md 版1.1</strong>(§8 セットアップ手順・§9 テスト計画・§10 工程表)に基づく実作業手順です。<strong>構築7日間＋連続稼働確認2〜3日</strong>を経て、Go/No-Go判定のうえ試験運用(パイロット5〜10店舗)へ移行します。設計の背景・詳細仕様は実装プラン本体を参照してください。</p>
+    <p>本書は、実装プラン <strong>documents/implementation-plan.md 版1.3</strong>(§8 セットアップ手順・§9 テスト計画・§10 工程表)に基づく実作業手順です。<strong>構築7日間＋連続稼働確認2〜3日</strong>を経て、Go/No-Go判定のうえ試験運用(パイロット5〜10店舗)へ移行します。設計の背景・詳細仕様は実装プラン本体を参照してください。</p>
   </div>
 
   <!-- 01 全体アーキテクチャ -->
@@ -541,7 +541,7 @@
       </div>
       <div class="prep">
         <div class="t">開発環境(clasp)</div>
-        <div class="d">リポジトリ直下に <code>.clasp.json</code>(<code>rootDir: "src"</code>)を置き、<code>clasp push</code> で反映。第1段階は素のJavaScript(.gs)とし、TypeScript化はしません。<code>.clasprc.json</code>(認証情報)は <code>.gitignore</code> に追加します。</div>
+        <div class="d">Node.jsをインストールし、<code>npm install -g @google/clasp</code> → <code>clasp login</code>(GAS所有アカウントでログイン)→ <a href="https://script.google.com/home/usersettings">Apps Script APIをON</a>(OFFのままだと <code>clasp push</code> が失敗します)。リポジトリ直下に <code>.clasp.json</code>(<code>rootDir: "src"</code>)を置き、<code>clasp push</code> で反映。第1段階は素のJavaScript(.gs)とし、TypeScript化はしません。<code>.clasprc.json</code>(認証情報)は <code>.gitignore</code> に追加します。<br>なお clasp を使わず、GASエディタへ <code>src/</code> 配下の各 .gs ファイルと <code>appsscript.json</code> を直接貼り付けて反映しても構いません。</div>
       </div>
     </div>
   </section>
@@ -550,6 +550,10 @@
   <section>
     <h2><span class="index">03</span>構築ステップ</h2>
     <p>STEP 1〜5 を順に実施します。いずれも実装プラン §8(セットアップ手順)・§6.2(Dropbox認可フロー)の要約です。</p>
+
+    <div class="point">
+      <strong>GASエディタで関数を初めて実行するとき</strong>　Googleアカウントの承認ダイアログが表示されます。「このアプリは Google で確認されていません」という警告が出た場合は、「詳細」→「(プロジェクト名)(安全ではないページ)に移動」→「許可」の順に進めます。自分たちで作成したスクリプトに自分のアカウントの権限を与える操作であり、問題ありません(初回のみ)。
+    </div>
 
     <!-- STEP 1 -->
     <div class="setup-step">
@@ -573,8 +577,8 @@
               </tr>
               <tr>
                 <td>BotのユーザーID</td>
-                <td>控える</td>
-                <td><code>U</code> で始まる値。<code>LINE_BOT_USER_ID</code> へ登録</td>
+                <td>後で自動取得</td>
+                <td>コンソール上では確認できません(基本設定タブの「あなたのユーザーID」は<em>管理者個人のID</em>のため使用不可)。STEP 4 で <code>setupLineBotUserId()</code> を実行すると <code>LINE_BOT_USER_ID</code> へ自動保存されます</td>
               </tr>
               <tr>
                 <td>グループトーク・複数人トークへの参加</td>
@@ -624,7 +628,7 @@
       <div class="ss-body">
         <div class="mini-steps">
           <div class="mini-step"><div class="d">
-            保存先アカウント(発注元)のApp Consoleで<strong>アプリを作成</strong>します。アクセスタイプは Scoped access の <strong>Full Dropbox</strong>(App folder では既存の「お客様＞お預かり画像」配下に保存できません)、権限(スコープ)は <code>files.content.write</code> / <code>sharing.write</code> / <code>sharing.read</code> を付与します。<code>APP_KEY</code> / <code>APP_SECRET</code> を控えます。
+            保存先アカウント(発注元)のApp Consoleで<strong>アプリを作成</strong>します。アクセスタイプは Scoped access の <strong>Full Dropbox</strong>(App folder では既存の「お客様＞お預かり画像」配下に保存できません)、権限(スコープ)は <code>files.content.write</code> / <code>sharing.write</code> / <code>sharing.read</code> を付与します。<code>APP_KEY</code> / <code>APP_SECRET</code> をスクリプトプロパティ <code>DROPBOX_APP_KEY</code> / <code>DROPBOX_APP_SECRET</code> へ<strong>登録</strong>します(手順3の交換処理がこの2件を参照するため、控えるだけでなくこの時点で登録)。
           </div></div>
           <div class="mini-step"><div class="d">
             次の認可URLをブラウザで開いて認可し、表示される<strong>認可コード</strong>を控えます。
@@ -632,7 +636,7 @@
             <strong><code>token_access_type=offline</code> は必須</strong>です(これがないとリフレッシュトークンが発行されません)。
           </div></div>
           <div class="mini-step"><div class="d">
-            GASエディタから <code>exchangeDropboxAuthCode('&lt;認可コード&gt;')</code> を<strong>1回だけ実行</strong>し、リフレッシュトークンを取得してスクリプトプロパティ <code>DROPBOX_REFRESH_TOKEN</code> へ保存します。以後のアクセストークンは実行時に自動再発行されます(有効期間約4時間・キャッシュ運用)。
+            認可コードをスクリプトプロパティ <code>DROPBOX_AUTH_CODE</code> へ一時登録し、GASエディタから <code>exchangeDropboxAuthCodeFromProp()</code> を<strong>1回だけ実行</strong>します(GASエディタは引数付き関数を直接実行できないため、プロパティ経由で渡します)。成功するとリフレッシュトークンがスクリプトプロパティ <code>DROPBOX_REFRESH_TOKEN</code> へ保存され、一時プロパティ <code>DROPBOX_AUTH_CODE</code> は自動削除されます。以後のアクセストークンは実行時に自動再発行されます(有効期間約4時間・キャッシュ運用)。
           </div></div>
         </div>
         <div class="ss-note">手順2〜3は連続して実施します(認可コードは短時間で失効)。GASプロジェクトが未作成の場合は、先に STEP 4 の手順1(プロジェクト作成・コード反映)まで済ませてから戻ってください。<br>
@@ -679,10 +683,13 @@
       <div class="ss-body">
         <div class="mini-steps">
           <div class="mini-step"><div class="d">
-            GASプロジェクトを作成し(または <code>clasp push</code> で反映)、スクリプトプロパティを<strong>全件登録</strong>します(04節の一覧)。プロジェクトの所有は会社共用アカウントを推奨します。<code>appsscript.json</code> は <code>timeZone: "Asia/Tokyo"</code>・V8ランタイムとします。
+            GASプロジェクトを作成し(または <code>clasp push</code> で反映)、スクリプトプロパティを<strong>登録</strong>します(04節の一覧。ただし <code>LINE_BOT_USER_ID</code> は手順2で自動取得、<code>SUMMARY_GROUP_ID</code> / <code>ADMIN_GROUP_ID</code> はWebhookデプロイ後でないと取得できないため、この時点では未登録で構いません)。プロジェクトの所有は会社共用アカウントを推奨します。<code>appsscript.json</code> は <code>timeZone: "Asia/Tokyo"</code>・V8ランタイムとします。
           </div></div>
           <div class="mini-step"><div class="d">
-            <code>checkConfiguration()</code> を実行し、<strong>設定漏れゼロ</strong>を確認します。
+            GASエディタから <code>setupLineBotUserId()</code> を実行します。LINE公式API(<code>/v2/bot/info</code>)からBotのユーザーID(<code>U</code> で始まる値)を取得し、スクリプトプロパティ <code>LINE_BOT_USER_ID</code> へ自動保存します(先に <code>LINE_CHANNEL_ACCESS_TOKEN</code> の登録が必要)。
+          </div></div>
+          <div class="mini-step"><div class="d">
+            <code>checkConfiguration()</code> を実行し、未設定(NG)が <code>SUMMARY_GROUP_ID</code> / <code>ADMIN_GROUP_ID</code> の<strong>2件のみ</strong>であることを確認します。この2件はデプロイ後にBotをグループへ招待して取得します(05節の疎通確認の過程で取得・登録し、<code>checkConfiguration()</code> を再実行して<strong>設定漏れゼロ</strong>を確認)。
           </div></div>
           <div class="mini-step"><div class="d">
             「デプロイ」→「新しいデプロイ」→ 種類: <strong>ウェブアプリ</strong> / アクセス: <strong>全員(匿名を含む)</strong> / 実行ユーザー: <strong>自分</strong>。<strong>デプロイIDを控えます</strong>。以後のコード更新は同じデプロイIDへの新バージョン発行で行います(毎回「新しいデプロイ」を作るとURLが変わり、LINE側の再設定が必要になるため)。
@@ -731,20 +738,22 @@
   <section>
     <h2><span class="index">04</span>スクリプトプロパティ一覧</h2>
     <p>秘匿情報はすべてGASのスクリプトプロパティで管理します。<em>設定シートには非秘匿の運用調整値のみを置き、トークン・APIキーの類は決してシートに書きません。</em></p>
+    <p class="note">設定場所: GASエディタ左メニューの「プロジェクトの設定」(歯車アイコン)→「スクリプト プロパティ」→「スクリプト プロパティを追加」。</p>
     <div class="scroll">
       <table>
         <thead><tr><th>キー</th><th>用途</th><th>取得元</th></tr></thead>
         <tbody>
           <tr><td><code>LINE_CHANNEL_ACCESS_TOKEN</code></td><td>Push送信・コンテンツ取得・プロフィール取得</td><td>LINE Developersコンソール(長期チャネルアクセストークン)</td></tr>
-          <tr><td><code>WEBHOOK_VERIFY_TOKEN</code></td><td>Webhook URLの秘密トークン(<code>?token=</code> 照合用)</td><td>実装者が乱数生成(32文字以上)</td></tr>
-          <tr><td><code>LINE_BOT_USER_ID</code></td><td>Webhookボディの <code>destination</code> 照合用</td><td>LINE Developersコンソール(<code>U</code> で始まる値)</td></tr>
+          <tr><td><code>WEBHOOK_VERIFY_TOKEN</code></td><td>Webhook URLの秘密トークン(<code>?token=</code> 照合用)</td><td>実装者が乱数生成(<em>32文字以上</em>。例: パスワード生成ツールで英数字32〜64文字を生成。32文字未満は <code>checkConfiguration()</code> でNGになります)</td></tr>
+          <tr><td><code>LINE_BOT_USER_ID</code></td><td>Webhookボディの <code>destination</code> 照合用(<code>U</code> で始まる値)</td><td><code>setupLineBotUserId()</code> の実行で自動保存(STEP 4 手順2)。コンソールの「あなたのユーザーID」は管理者個人のIDのため<em>使用不可</em></td></tr>
           <tr><td><code>GEMINI_API_KEY</code></td><td>Gemini API認証</td><td>Google AI Studio(有料ティアのプロジェクトに紐づくキー)</td></tr>
           <tr><td><code>DROPBOX_APP_KEY</code> / <code>DROPBOX_APP_SECRET</code></td><td>Dropbox OAuth2</td><td>Dropbox App Console</td></tr>
           <tr><td><code>DROPBOX_REFRESH_TOKEN</code></td><td>アクセストークン再発行</td><td>初回認可フロー(STEP 2)で取得</td></tr>
           <tr><td><code>SPREADSHEET_ID</code></td><td>対象スプレッドシート</td><td>作成したシートのURL</td></tr>
-          <tr><td><code>SUMMARY_GROUP_ID</code></td><td>日次サマリの宛先(社内グループ)</td><td>Botをグループに入れてWebhookログから取得</td></tr>
+          <tr><td><code>SUMMARY_GROUP_ID</code></td><td>日次サマリの宛先(社内グループ)</td><td>Botをグループへ招待すると<em>顧客マスタA列</em>にグループIDが自動追記されるので、その値を登録(メッセージログB列でも確認可)</td></tr>
           <tr><td><code>SUMMARY_LAST_SENT_AT</code></td><td>日次サマリの最終送信日時(新着の対象窓の起点)</td><td><strong>手動設定不要</strong>(送信成功時に自動更新。未設定時は前営業日10:00で代替)</td></tr>
           <tr><td><code>ADMIN_GROUP_ID</code></td><td>エラー・警告通知の宛先</td><td>同上(通数節約のため少人数の管理者グループを推奨)</td></tr>
+          <tr><td><code>TASK_ID_SEQ</code> / <code>ANALYSIS_LOCK_UNTIL</code></td><td>タスクID採番カウンタ / 分析バッチの多重起動ロック</td><td><strong>手動設定不要</strong>(自動管理。<code>TASK_ID_SEQ</code> は <code>setupSpreadsheet()</code> が初期化)</td></tr>
         </tbody>
       </table>
     </div>
@@ -761,15 +770,15 @@
       </div></div>
       <div class="check"><div class="d">
         <strong>社内テストグループにBotを招待</strong>
-        <span class="expect">顧客マスタに行が自動追加され、サロン名にLINEのグループ名が自動記入される</span>
+        <span class="expect">顧客マスタに行が自動追加され、サロン名にLINEのグループ名が自動記入される。ここで顧客マスタA列のグループIDをスクリプトプロパティ <code>SUMMARY_GROUP_ID</code>(テスト中はテストグループ宛)・<code>ADMIN_GROUP_ID</code>(管理者グループにも同様にBotを招待して取得)へ登録し、<code>checkConfiguration()</code> を再実行して<strong>設定漏れゼロ</strong>を確認する(項番7の手動実行はこの2件が未登録だと失敗する)</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>テストグループでテキスト送信</strong>
-        <span class="expect">メッセージログに1行追加。発言者区分(自社/お客様)が正しい</span>
+        <span class="expect">メッセージログに1行追加される(発言者区分の確認は項番4のuserID収集後に行う。収集前は自社メンバーの発言も「お客様」と記録されるのが正常)</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>自社メンバーuserIDの収集</strong>
-        <span class="expect">テストグループを顧客マスタで状態「社内」にし、各メンバーが1回発言 → 設定シートの自社メンバーuserIDリストへ自動追記される。確認後は状態を「有効」に戻す(以降の画像・起票確認のため)</span>
+        <span class="expect">テストグループを顧客マスタで状態「社内」にし、各メンバーが1回発言 → 設定シートの自社メンバーuserIDリストへ自動追記される。以後の発言で発言者区分(自社/お客様)が正しく記録される。確認後は状態を「有効」に戻す(以降の画像・起票確認のため)</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>画像を送信</strong>
@@ -781,7 +790,7 @@
       </div></div>
       <div class="check"><div class="d">
         <strong><code>sendDailySummary()</code> の手動実行</strong>
-        <span class="expect">社内グループ(テスト時はテストグループ宛に設定変更)へFlex形式の新着連絡サマリ(墨色ヘッダー帯＋「タスク一覧を開く」ボタン)が届く。注意: 手動実行も送信成功時に <code>SUMMARY_LAST_SENT_AT</code> を更新するため、翌朝のサマリは「手動実行以降の新着」になる(本番運用中にテスト実行した場合は、必要に応じてスクリプトプロパティを元の値へ戻す)</span>
+        <span class="expect">社内グループ(テスト時はテストグループ宛に設定変更)へFlex形式の新着連絡サマリ(墨色ヘッダー帯＋「タスク一覧を開く」ボタン)が届く。注意①: <em>土日祝・年末年始(12/29〜1/3)は手動実行でも関数冒頭の判定でスキップされ何も届かない</em>ため、この確認は平日に行う。注意②: 手動実行も送信成功時に <code>SUMMARY_LAST_SENT_AT</code> を更新するため、翌朝のサマリは「手動実行以降の新着」になる(本番運用中にテスト実行した場合は、必要に応じてスクリプトプロパティを元の値へ戻す)</span>
       </div></div>
       <div class="check"><div class="d">
         <strong>通知先を本番の社内グループへ切り替え</strong>
@@ -851,7 +860,7 @@
       <div class="day">
         <div class="dn">DAY 1</div>
         <div class="work">環境準備<small>LINEチャネル設定(STEP 1)、Dropboxアプリ作成＋リフレッシュトークン取得(STEP 2)、スプレッドシート生成(STEP 3)、GASプロジェクト作成・clasp初期化・スクリプトプロパティ投入</small></div>
-        <div class="goal"><code>checkConfiguration()</code> 全項目パス</div>
+        <div class="goal"><code>checkConfiguration()</code> の未設定が <code>SUMMARY_GROUP_ID</code> / <code>ADMIN_GROUP_ID</code> の2件のみ(この2件はDAY 2のデプロイ後に取得・登録)</div>
       </div>
       <div class="day">
         <div class="dn">DAY 2</div>
@@ -928,8 +937,8 @@
   </section>
 
   <div class="doc-footer">
-    <p>正本参照: 設計・仕様の詳細は <code>documents/implementation-plan.md</code> 版1.2(GAS構成 §2 / シート設計 §3 / 機能別詳細設計 §4 / セキュリティ §6 / 制約・リスク一覧 §7)を参照してください。承認済み提案書(What の正本)は <a href="./index.html">docs/index.html</a> です。</p>
-    <p>株式会社サイバーアクセル・アドバイザーズ — LINEタスク管理Bot 構築手順書 版1.0(2026年7月9日)</p>
+    <p>正本参照: 設計・仕様の詳細は <code>documents/implementation-plan.md</code> 版1.3(GAS構成 §2 / シート設計 §3 / 機能別詳細設計 §4 / セキュリティ §6 / 制約・リスク一覧 §7)を参照してください。承認済み提案書(What の正本)は <a href="./index.html">docs/index.html</a>、日々の使い方は<a href="./manual.html">利用マニュアル</a>を参照してください。</p>
+    <p>株式会社サイバーアクセル・アドバイザーズ — LINEタスク管理Bot 構築手順書 版1.1(2026年8月4日)</p>
   </div>
 
 </div>

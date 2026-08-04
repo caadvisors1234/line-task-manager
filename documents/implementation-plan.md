@@ -1,7 +1,16 @@
 # LINEタスク管理Bot 実装プラン
 
 **株式会社サイバーアクセル・アドバイザーズ — お客様LINEにおける対応漏れ防止システム**
-作成日: 2026-07-02 / 版: 1.2（テスト運用フィードバック反映版: 通知10時化・元の連絡文列・Dropbox保存先変更、2026-07-22）
+作成日: 2026-07-02 / 版: 1.3（2026-08-04）
+
+**変更履歴**
+
+| 版 | 日付 | 主な変更 |
+|---|---|---|
+| 1.0〜1.1 | 2026-07-02 | 初版（レビュー・ファクトチェック反映） |
+| 1.2 | 2026-07-22 | テスト運用フィードバック反映（通知10時化・元の連絡文列・Dropbox保存先変更） |
+| （版数なし） | 2026-07-24 / 07-30 | 日次サマリの土日祝・年末年始スキップ、「新着連絡サマリ」化を本文各所へ反映 |
+| 1.3 | 2026-08-04 | 変更履歴を整備。セットアップヘルパー関数（`setupLineBotUserId()` / `exchangeDropboxAuthCodeFromProp()`）と自動管理プロパティ（`TASK_ID_SEQ` / `ANALYSIS_LOCK_UNTIL`）を追記。Dropboxアクセストークンのキャッシュ期間の表記を実装どおり「`expires_in` の90%（約3.6時間）」に統一 |
 
 ---
 
@@ -18,7 +27,7 @@
 |---|---|---|
 | タスク一覧表の列構成 | 現行シートの列構成を踏襲（対応期日/納品データ/担当者名/店舗名/作業内容/議事録・添付資料/タスク状況(進捗)/タスク発生日）＋「メッセージ種別」を追加＋右端に「返信提案」 | タスクID・緊急度・期限・関連タスクID・元メッセージ・音声指示メモ等を含む2領域17列 |
 | 受領データのDropboxリンク記録先 | **議事録・添付資料** 列（「納品データ」列は当社が制作・納品したデータを担当者が管理） | 納品データ列 |
-| タスク状況の区分 | 現在の9区分をそのまま再現: 未対応/依頼中/作業完了・未チェック/チェック完了・残りお客様連絡/タスク完了済み/佐藤さん提出/急ぎの対応/反映待ち/お客様連絡待ち | 「急ぎ」は緊急度=高＋赤表示で表現、「対象外」区分あり |
+| タスク状況の区分 | 現在の9区分をそのまま再現: 未対応/依頼中/作業完了・未チェック/チェック完了・残りお客様連絡/タスク完了済み/佐藤さん提出/急ぎの対応/反映待ち/お客様連絡待ち（その後 §0.3-1 の承認により「対象外」を加えた10区分で実装。§3.1） | 「急ぎ」は緊急度=高＋赤表示で表現、「対象外」区分あり |
 | Geminiの利用形態 | **有料ティア**で利用し、入力内容をAIの学習に使わせない設定。数百円程度/月 | 無料枠内の見込み |
 | 一次受け定型文 | すぐに判断できない依頼に対し、AIが現在使用中の一次受け定型文を「返信提案」列に下書き（送信は担当者） | 返信提案機能の一部として簡潔に言及 |
 | タスクの初期ステータス | 新規依頼=「未対応」、進行承認（回答・承認）=「反映待ち」で登録。以降の更新は担当者のみ | 明示なし |
@@ -29,7 +38,7 @@
 
 | # | 確認事項 | 背景・推奨 |
 |---|---|---|
-| 1 | タスク状況プルダウンへの「対象外」追加可否 | 提案書は「多めに拾い、不要なものを人が除外する運用」とするが、9区分に除外用の値がない。行削除は証跡が消えるため、**「対象外」を10番目の値として追加することを推奨**（追加しない場合は「タスク完了済み」への変更で代替） |
+| 1 | タスク状況プルダウンへの「対象外」追加可否 | （解消済み）承認され、10番目の値として実装済み（§3.1）。提案書は「多めに拾い、不要なものを人が除外する運用」とするが、9区分に除外用の値がなく、行削除は証跡が消えるため追加を推奨していた |
 | 2 | タスク一覧への非表示管理列の追加可否 | タスクID・関連タスクID等を右端の非表示列として持つ（§4.1）。見た目・運用は変わらないが、現行シートに列が物理的に増える |
 | 3 | Dropboxの保存先フォルダ構成 | 当初は `/LINEタスク管理/{サロン名}/{yyyyMM}/` で構築。テスト運用のフィードバックを受け、発注元の既存Dropbox運用に合わせた `/お客様/お預かり画像/{yyyy.M.d}{サロン名}/`（発注元アカウントのDropbox）へ変更（§4.2） |
 | 4 | 社内通知グループの正確な人数 | 通数試算（§11.1）の前提。約30名で試算しているが、増減により月次通数が変わる |
@@ -100,14 +109,14 @@
 | `main.gs` | Webhookエントリポイント。イベント振り分けのみ | `doPost(e)` / `handleEvent_(event)` / `handleMessageEvent_(event)` / `handleJoinEvent_(event)` |
 | `config.gs` | 定数集約: シート名、列番号、タスク状況の値、メッセージ種別enum、スクリプトプロパティキー名 | `CONFIG` / `SHEET` / `COL` / `STATUS` / `MSG_TYPE`（定数オブジェクトのみ） |
 | `lineClient.gs` | LINE Messaging APIラッパ | `pushMessage_(to, messages)` / `fetchMessageContent_(messageId)`（api-data.line.me） / `fetchGroupMemberProfile_(groupId, userId)` / `fetchGroupSummary_(groupId)` / `fetchQuotaConsumption_()` |
-| `dropboxClient.gs` | Dropbox APIラッパ（OAuth2リフレッシュ含む） | `getDropboxAccessToken_()` / `uploadToDropbox_(blob, path)` / `getOrCreateSharedLink_(path)` / `downloadSharedLinkFile_(sharedLinkUrl)`（分析用画像の取得。§4.3） / `exchangeDropboxAuthCode(authCode)`（セットアップ時のみ手動実行） |
+| `dropboxClient.gs` | Dropbox APIラッパ（OAuth2リフレッシュ含む） | `getDropboxAccessToken_()` / `uploadToDropbox_(blob, path)` / `getOrCreateSharedLink_(path)` / `downloadSharedLinkFile_(sharedLinkUrl)`（分析用画像の取得。§4.3） / `exchangeDropboxAuthCode(authCode)` / `exchangeDropboxAuthCodeFromProp()`（セットアップ時のみ手動実行。GASエディタは引数付き関数を直接実行できないため、認可コードを一時プロパティ `DROPBOX_AUTH_CODE` 経由で渡す。§6.2） / `resetDropboxTokenCache()`（アカウント切替時のキャッシュ破棄。§6.2） |
 | `geminiClient.gs` | Gemini API呼び出し（structured output・画像inline_data） | `callGemini_(systemPrompt, userContent, responseSchema, extraParts)` / `buildResponseSchema_()`（relatedTaskIdをenumで限定しないため引数なし。§7-10） |
 | `analyzer.gs` | 分析バッチ本体 | `runAnalysisBatch()`（5分トリガー） / `isGroupReadyForAnalysis_(messages, nowMs)`（まとめ待機。§4.3） / `buildAnalysisContext_(groupId, targetMessages, options)` / `collectAnalysisImages_(targetMessages)`（画像収集。§4.3） / `applyTaskResult_(members, result, openTaskIds)`（まとめ起票。§4.3） |
 | `messageLogRepo.gs` | メッセージログシートの読み書き | `appendMessageLog_(record)` / `getUnanalyzedMessages_(limit)` / `getRecentConversation_(groupId, count)` / `markAnalyzed_(rowIndexes, status)` / `isDuplicateEvent_(webhookEventId, messageId)` |
 | `taskRepo.gs` | タスク一覧シートの読み書き（Botが書ける列を限定） | `createTask_(task)` / `issueTaskId_()` / `getOpenTasksBySalon_(salonName)` / `getTasksForSummary_(sinceStr, untilStr)` / `appendAttachmentLink_(taskId, url)` |
 | `masterRepo.gs` | 顧客マスタ・設定・返信テンプレートの読み取り | `resolveSalonName_(groupId)` / `registerNewGroup_(groupId)` / `getInternalUserIds_()` / `getSettings_()` / `getReplyTemplates_()` |
 | `notifier.gs` | 日次サマリ・管理者通知 | `sendDailySummary()`（日次トリガー） / `fallbackLastSentAt_(now, holidays)` / `isUrgentTask_(t, dueLimit)` / `buildSummaryFlex_(tasks, options)` / `buildSummaryText_(tasks, options)`（フォールバック用） / `notifyAdmin_(message)` |
-| `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `checkConfiguration()`（設定漏れ検査） / `backfillSalonNames()`（サロン名空欄行への一括記入。§3.3） |
+| `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `setupLineBotUserId()`（BotのユーザーIDを `/v2/bot/info` から取得しプロパティへ自動保存。§8.1） / `checkConfiguration()`（設定漏れ検査） / `backfillSalonNames()`（サロン名空欄行への一括記入。§3.3） |
 | `utils.gs` | 共通処理 | `withScriptLock_(fn, timeoutMs)` / `fetchWithRetry_(url, params, maxRetry)` / `formatDateTime_(date)` / `logError_(context, error)` |
 | `test.gs` | 手動テスト用 | `test_simulateTextMessage()` / `test_simulateImageMessage()` / `test_runAnalysisOnFixture()` / `test_buildSummary()` / `test_buildSummaryFlex()` / `test_isUrgentTask()` / `test_fallbackLastSentAt()` / `test_getTasksForSummarySince()` / `test_downloadSharedLinkFile()` / `test_collectAnalysisImages()` / `test_runAnalysisOnImageFixture()` / `test_isGroupReadyForAnalysis()` / `test_runAnalysisOnMergeFixture()`（§9.1） |
 
@@ -117,14 +126,15 @@
 |---|---|---|
 | `LINE_CHANNEL_ACCESS_TOKEN` | Push送信・コンテンツ取得・プロフィール取得 | LINE Developersコンソール（長期チャネルアクセストークン） |
 | `WEBHOOK_VERIFY_TOKEN` | Webhook URLの秘密トークン（`?token=` 照合用） | 実装者が乱数生成（32文字以上） |
-| `LINE_BOT_USER_ID` | Webhookボディの `destination` 照合用 | LINE Developersコンソール（BotのユーザーID、`U` で始まる値） |
+| `LINE_BOT_USER_ID` | Webhookボディの `destination` 照合用（BotのユーザーID、`U` で始まる値） | `setupLineBotUserId()` の実行で自動保存（§8.1。コンソールの「あなたのユーザーID」は管理者個人のIDのため使用不可） |
 | `GEMINI_API_KEY` | Gemini API認証 | Google AI Studio（取得済み。有料ティアのプロジェクトに紐づくキーであること） |
 | `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` | Dropbox OAuth2 | Dropbox App Console |
 | `DROPBOX_REFRESH_TOKEN` | アクセストークン再発行 | 初回認可フロー（§8.2）で取得 |
 | `SPREADSHEET_ID` | 対象スプレッドシート | 作成したシートのURL |
-| `SUMMARY_GROUP_ID` | 日次サマリの宛先（社内グループ） | BotをグループにいれてWebhookログから取得（§8.5） |
+| `SUMMARY_GROUP_ID` | 日次サマリの宛先（社内グループ） | Botをグループへ招待すると顧客マスタA列に自動追記されるグループIDを登録（§8.5） |
 | `ADMIN_GROUP_ID` | エラー・警告通知の宛先 | 同上（少人数の管理者グループを推奨。通数節約のため） |
 | `SUMMARY_LAST_SENT_AT` | 日次サマリの最終送信日時（新着の対象窓の起点。§4.4） | **手動設定不要**（送信成功時に自動更新。未設定なら前営業日10:00で代替） |
+| `TASK_ID_SEQ` / `ANALYSIS_LOCK_UNTIL` | タスクID採番カウンタ / 分析バッチの多重起動ロック | **手動設定不要**（自動管理。`TASK_ID_SEQ` は `setupSpreadsheet()` が初期化） |
 
 シート「設定」には運用者が調整してよい非秘匿値のみを置く（§4.5）。秘匿値は必ずスクリプトプロパティに置き、シートには書かない。
 
@@ -189,7 +199,7 @@
 | 急ぎの対応 | 最優先。最左列（対応期日）に赤字で期限を記入 | `#ff2b22` 赤（白文字） |
 | 反映待ち | 下書き登録後、連絡まで完了したもの | `#4a86d8` 青（白文字） |
 | お客様連絡待ち | お客様からの連絡待ち | `#b6d7a8` 薄緑 |
-| （対象外） | §0.3-1 で追加が承認された場合のみ。AIの誤起票を人が除外する用途 | 灰＋取り消し線（新設のため任意） |
+| 対象外 | AIの誤起票を人が除外する用途（§0.3-1 で承認済み） | 灰＋取り消し線 |
 
 ### 3.2 シート2: メッセージログ
 
@@ -312,7 +322,7 @@
 **処理ステップ:**
 
 1. `GET https://api-data.line.me/v2/bot/message/{messageId}/content` でBlobを取得（通常APIの `api.line.me` とはドメインが異なる点に注意）。動画・音声は変換完了前だと取得できないため、`GET .../content/transcoding` で変換状態を確認し、`processing` の場合は2秒間隔で最大3回待って再取得する（それでも未完了ならmessageIdをログに記録し、分析バッチ側で遅延再取得する）。
-2. アクセストークンを `getDropboxAccessToken_()` で取得。リフレッシュトークンから `POST https://api.dropboxapi.com/oauth2/token`（`grant_type=refresh_token`）で再発行し、CacheServiceに3.5時間キャッシュ（アクセストークンの有効期間約4時間より短く設定）。
+2. アクセストークンを `getDropboxAccessToken_()` で取得。リフレッシュトークンから `POST https://api.dropboxapi.com/oauth2/token`（`grant_type=refresh_token`）で再発行し、CacheServiceに `expires_in` の90%の秒数（約3.6時間。上限6時間）でキャッシュ（アクセストークンの有効期間約4時間より短く設定）。
 3. `POST https://content.dropboxapi.com/2/files/upload` でアップロード。
    - 保存パス: `/お客様/お預かり画像/{yyyy.M.d}{サロン名}/{yyyyMMdd_HHmmss}_{messageId}.{拡張子}`。日付フォルダは発注元の既存運用（例: `2025.1.19旭岡店`）に合わせ、ゼロ埋めなし・サロン名直結。日時は**Webhookイベントの `timestamp`**（重複配信でも不変）から生成し、messageIdと合わせて**同一メッセージは常に同一パス＝冪等**とする（`mode: overwrite`）。動画・音声の変換待ち再取得（`retryPendingTranscodes_`）もメッセージログの受信日時（シート上で不変）から `buildDropboxPath_` で同一パスを再構成する。
    - サロン名が未設定のグループは `/お客様/お預かり画像/{yyyy.M.d}_未設定/{groupId}/` 配下に保存する。サロン名に含まれるパス不可文字（`/` `\` 等）は `_` に置換する。
@@ -575,7 +585,7 @@ abc123
 
 1. 保存先アカウント（発注元。§4.2）のDropbox App Consoleでアプリ作成（Scoped access / **Full Dropbox 必須**。App folder では既存の「お客様＞お預かり画像」配下に保存できない。§0.3-3）。権限: `files.content.write` `sharing.write` `sharing.read`（`sharing.read` は共有リンク経由のダウンロード `get_shared_link_file`＝分析用画像の取得にも必須。§4.3）。
 2. 認可URL: `https://www.dropbox.com/oauth2/authorize?client_id=<APP_KEY>&response_type=code&token_access_type=offline`（**`token_access_type=offline` が必須**。これがないとリフレッシュトークンが発行されない）。
-3. ブラウザで認可し、表示された認可コードを `exchangeDropboxAuthCode('<コード>')` の引数に貼ってGASエディタから1回実行 → `POST https://api.dropboxapi.com/oauth2/token`（`grant_type=authorization_code`）でリフレッシュトークンを取得し、スクリプトプロパティへ保存。
+3. ブラウザで認可し、表示された認可コードをスクリプトプロパティ `DROPBOX_AUTH_CODE` へ一時登録して `exchangeDropboxAuthCodeFromProp()` をGASエディタから1回実行（GASエディタは引数付き関数を直接実行できないため、プロパティ経由で渡す）→ `POST https://api.dropboxapi.com/oauth2/token`（`grant_type=authorization_code`）でリフレッシュトークンを取得し、スクリプトプロパティへ保存。成功時に一時プロパティ `DROPBOX_AUTH_CODE` は自動削除される。事前に `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` の登録が必要。
 4. 以後は `getDropboxAccessToken_()` が `grant_type=refresh_token` で短命アクセストークンを再発行し、CacheServiceにキャッシュして使い回す。有効期間は現行実測で約4時間（`expires_in: 14400`）だが公式保証値ではないため、応答の `expires_in` から10%引いた秒数をキャッシュ期間とする実装にする。
 5. リフレッシュトークンは明示的に無効化しない限り長期有効。失効時（§4.2異常系）は手順2〜3を再実行する。
 6. **保存先アカウントの切替時**は、新アカウントで手順1〜3を再実施してスクリプトプロパティ `DROPBOX_APP_KEY` / `DROPBOX_APP_SECRET` / `DROPBOX_REFRESH_TOKEN` を差し替えたうえで、`resetDropboxTokenCache()` を実行する（旧アカウントのアクセストークンが最大約3.6時間キャッシュに残るため）。その後 `checkConfiguration()` とテストアップロードで疎通確認する。
@@ -611,7 +621,7 @@ abc123
 | 4 | 302応答のためLINEコンソールの「検証」ボタンが失敗する（doPost自体は実行される） | 疎通確認で混乱 | 「検証ボタンの失敗は仕様。疎通確認は実メッセージで行う」を手順書に明記 | §8.5 |
 | 5 | GASの実行時間制限（1実行6分）・トリガー合計実行時間（無償アカウント90分/日、Workspaceアカウント6時間/日） | バッチの中断・停止 | 4.5分自己中断ガード＋処理グループ数上限。試算: 未処理の空振り回（約260回/日×約5秒≒22分）＋処理発生回（約30回/日×30〜60秒≒15〜30分）＋画像分析の増分（画像1枚あたり約3〜6秒、＋5〜10分/日）＝合計45〜65分/日で90分/日内。超過が見えたらトリガー間隔を10分へ変更 | §4.3 |
 | 6 | UrlFetchApp制限（呼び出し2万回/日、サイズ50MB） | 大容量ファイルの保存不可 | 日次呼び出しは受信100＋Dropbox数十（保存＋分析用画像ダウンロード）＋Gemini数百＋Push数回で余裕。50MB超はスキップ＋通知 | §4.2 |
-| 7 | Dropboxアクセストークンは約4時間で失効 | アップロード失敗 | リフレッシュトークン＋3.5時間キャッシュで自動再発行 | §6.2 |
+| 7 | Dropboxアクセストークンは約4時間で失効 | アップロード失敗 | リフレッシュトークン＋約3.6時間（`expires_in` の90%）キャッシュで自動再発行 | §6.2 |
 | 8 | Dropbox共有リンクの重複作成は409エラー | リンク記録の失敗 | `shared_link_already_exists` 時は `list_shared_links` で既存リンク取得 | §4.2 |
 | 9 | `Dropbox-API-Arg` ヘッダーは非ASCII不可 | 日本語パスでエラー | JSONを `\uXXXX` エスケープして送出 | §4.2 |
 | 10 | Geminiが実在しない関連タスクIDを生成し得る | 誤った紐付け | プロンプトで候補を限定＋書き込み前にコード側で実在照合 | §4.3, §5.2 |
@@ -633,7 +643,7 @@ abc123
 1. LINE Developersコンソールで対象チャネル（Messaging API）を開く。
 2. [Messaging API設定] タブ:
    - 長期チャネルアクセストークンを発行 → `LINE_CHANNEL_ACCESS_TOKEN` へ。
-   - BotのユーザーID（`U` で始まる）を控える → `LINE_BOT_USER_ID` へ。
+   - BotのユーザーID（`U` で始まる）はコンソール上では確認できないため、`LINE_CHANNEL_ACCESS_TOKEN` の登録後に `setupLineBotUserId()` をGASエディタから実行して `LINE_BOT_USER_ID` へ自動保存する（基本設定タブの「あなたのユーザーID」は管理者個人のIDのため使用不可）。
    - 「グループトーク・複数人トークへの参加を許可する」を **ON**（デフォルトOFF）。
    - Webhookの利用を **ON**、Webhook再送は **OFF**（GASが302を返すため全イベントが配信失敗扱いとなり、ONにすると正常イベントまで重複再送されるため。§4.1）。
    - 応答メッセージを **OFF**（あいさつメッセージもOFF。二重応答・自動発言の防止）。
@@ -642,7 +652,7 @@ abc123
 
 ### 8.2 Dropboxアプリ作成
 
-§6.2の手順1〜3。取得した `APP_KEY` / `APP_SECRET` / リフレッシュトークンをスクリプトプロパティへ。
+§6.2の手順1〜3。`APP_KEY` / `APP_SECRET` は手順1の時点でスクリプトプロパティへ登録し（手順3の交換処理が参照する）、リフレッシュトークンは手順3の実行で自動保存される。
 
 ### 8.3 スプレッドシート初期構築
 
