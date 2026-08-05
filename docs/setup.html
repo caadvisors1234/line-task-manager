@@ -405,6 +405,24 @@
   }
   .doc-footer a { color: var(--accent-dark); text-decoration: none; border-bottom: 1px solid #bcdfc9; }
 
+  /* 箇条書き */
+  ul.plain { list-style: none; border-top: 1px solid var(--hairline); margin-top: 14px; }
+  ul.plain li {
+    padding: 12px 4px 12px 22px;
+    border-bottom: 1px solid var(--hairline);
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    position: relative;
+  }
+  ul.plain li::before {
+    content: "";
+    position: absolute;
+    left: 4px; top: 1.5em;
+    width: 7px; height: 1.5px;
+    background: var(--accent-dark);
+  }
+  ul.plain li em { color: var(--ink); }
+
   @media (max-width: 640px) {
     body { font-size: 15px; }
     header { padding: 44px 22px 38px; }
@@ -424,7 +442,7 @@
   <div class="header-inner">
     <div class="doc-meta">
       <span>社内資料 — 実装者向け</span>
-      <span>2026年8月4日　版 1.1</span>
+      <span>2026年8月5日　版 1.2</span>
     </div>
     <h1>LINEタスク管理Bot 構築手順書</h1>
     <p class="subtitle">株式会社サイバーアクセル・アドバイザーズ — お客様LINEにおける対応漏れ防止システム</p>
@@ -936,9 +954,81 @@
     </div>
   </section>
 
+  <!-- 09 日常運用(管理者向け) -->
+  <section>
+    <h2><span class="index">09</span>日常運用(管理者向け)</h2>
+    <p>構築後の運用で管理者が担う範囲です。現場スタッフ向けの説明は<a href="./manual.html">利用マニュアル</a>にあり、そちらには本章の内容を載せていません(現場は「毎朝の通知確認」だけを担当します)。</p>
+
+    <h3>タスク一覧シートの位置づけ</h3>
+    <p>本番運用では、<em>タスクの進捗管理は先方の既存タスク管理シートへ一本化</em>します(「タスク状況」列の新設・色分けは <code>tools/task-status-column/</code> で適用済み)。Botの「タスク一覧」シートは<em>見逃しの照合と原文参照のための一覧</em>と位置づけ、現場は書き込みません。</p>
+    <div class="cautions">
+      <div class="caution"><div class="d">
+        <strong>「担当者名」「対応期日」「納品データ」「タスク状況(進捗)」列は未使用</strong>
+        AIが入れた初期値のまま残ります(「タスク状況」の初期値により行に色が付きますが、運用上の意味はありません)。列の削除・非表示は行っていません。誤起票の行も削除せず放置で構いません。
+      </div></div>
+      <div class="caution"><div class="d">
+        <strong>サマリの「タスク一覧を開く」ボタンはBotのスプレッドシートを開く</strong>
+        先方の既存タスクシートではありません(<code>src/notifier.gs</code>)。開き先を変更する場合はコード修正が必要です。
+      </div></div>
+    </div>
+
+    <h3>シート構成</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>シート</th><th>役割</th><th>主な操作者</th></tr></thead>
+        <tbody>
+          <tr><td>使い方</td><td>シート内の簡易説明(先頭タブ)</td><td>—(閲覧のみ)</td></tr>
+          <tr><td>タスク一覧</td><td>AIが起票したタスクの一覧。照合・原文参照用</td><td>現場(閲覧)</td></tr>
+          <tr><td>顧客マスタ</td><td>LINEグループとサロン名の対応表・グループの状態管理</td><td>管理者</td></tr>
+          <tr><td>設定</td><td>非秘匿の運用調整値(サマリ表示件数・期限の近さ判定など)</td><td>管理者</td></tr>
+          <tr><td>返信テンプレート</td><td>AIが返信提案を作る際に参照する文例</td><td>管理者</td></tr>
+          <tr><td>メッセージログ</td><td>受信メッセージの記録(自動)</td><td>—(調査時)</td></tr>
+          <tr><td>エラーログ</td><td>システムエラーの記録(自動)</td><td>管理者</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>顧客マスタの運用</h3>
+    <ul class="plain">
+      <li>Botが新しいグループに参加すると<em>行が自動追加</em>され、LINEのグループ名がB列(サロン名)に入ります。行の手動追加は不要です。</li>
+      <li>表記を変えたい場合はB列を直接上書きします。<em>一度記入した値をAIが変更することはありません。</em>サマリに「※サロン名未設定のグループが◯件」と出た場合は、B列が空欄の行を探して記入します。</li>
+      <li>社内用・テスト用グループは<em>参加後ただちにC列「状態」を「社内」へ変更</em>します(お客様向けの記録・分析の対象外になります)。先にメンバーを入れると、「社内」化前の発言が顧客メッセージとして分析されます。</li>
+      <li>Botがグループから退出すると、状態は自動で「退出」になります。</li>
+    </ul>
+
+    <h3>自社メンバーuserIDリスト</h3>
+    <p>状態「社内」のグループで発言したメンバーは、設定シートの「自社メンバーuserIDリスト」へ<em>自動登録</em>されます。以後、お客様グループでのそのメンバーの発言はタスク化の対象外になります。</p>
+    <ul class="plain">
+      <li>新メンバーが入ったら、社内グループで1回発言してもらいます。</li>
+      <li>退職時は<em>リストからのID削除とLINEグループからの退出の両方</em>を行います(社内グループに残ったまま発言すると自動で再登録されます)。</li>
+    </ul>
+
+    <h3>Dropbox保存の仕様</h3>
+    <ul class="plain">
+      <li>保存先は <code>/お客様/お預かり画像/{yyyy.M.d}{サロン名}/</code>(例: <code>2025.1.19サロンA様</code>)。受信時に即保存し、リンクをタスクの「議事録・添付資料」列に記録します。</li>
+      <li><em>AIが読み取る画像は最大3枚・1枚4MBまで。</em>超過分は保存のみ行い、タスク化の判定は本文だけで行われます。</li>
+      <li>動画・音声はLINE側の変換完了を待って保存するため<em>遅延することがあります</em>(まる1日で打ち切り、管理者へ通知)。AIが内容を読み取るのは画像のみです。</li>
+      <li>50MB超のファイルはスキップし、保存失敗とあわせて管理者グループへ自動通知します。</li>
+    </ul>
+
+    <h3>現場からの問い合わせへの対応</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>症状</th><th>確認すること</th></tr></thead>
+        <tbody>
+          <tr><td>サマリに「分析失敗◯件」</td><td>エラーログシートと管理者グループへのエラー通知を確認。Gemini APIのレート制限・応答形式エラーが主因。該当メッセージはメッセージログから再確認できます。</td></tr>
+          <tr><td>サマリに「※サロン名未設定」</td><td>顧客マスタのB列が空欄の行を記入(上記)。</td></tr>
+          <tr><td>平日にサマリが届かない</td><td>トリガーの存在(<code>sendDailySummary</code>)、通数残量(しきい値4,500通で警告)、エラーログ、祝日判定の誤りを順に確認。</td></tr>
+          <tr><td>タスクが起票されない</td><td>反映は通常5分・最大15分。それ以上ならメッセージログへの記録有無を確認し、記録がなければWebhook側(デプロイのバージョン・トークン)、記録があれば分析バッチ側を疑います。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">本番切替・パイロット展開・切戻しの手順は <code>documents/production-switchover.md</code> を参照してください。</p>
+  </section>
+
   <div class="doc-footer">
     <p>正本参照: 設計・仕様の詳細は <code>documents/implementation-plan.md</code> 版1.3(GAS構成 §2 / シート設計 §3 / 機能別詳細設計 §4 / セキュリティ §6 / 制約・リスク一覧 §7)を参照してください。承認済み提案書(What の正本)は <a href="./index.html">docs/index.html</a>、日々の使い方は<a href="./manual.html">利用マニュアル</a>を参照してください。</p>
-    <p>株式会社サイバーアクセル・アドバイザーズ — LINEタスク管理Bot 構築手順書 版1.1(2026年8月4日)</p>
+    <p>株式会社サイバーアクセル・アドバイザーズ — LINEタスク管理Bot 構築手順書 版1.2(2026年8月5日)</p>
   </div>
 
 </div>

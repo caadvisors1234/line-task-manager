@@ -14,9 +14,6 @@
     --line-bg: #7494C0;
     --hairline: #dde2e9;
     --bg-soft: #f7f8fa;
-    /* 実際のスプレッドシートの配色(src/setup.gs と同値) */
-    --sheet-human-bg: #d9f2e5;
-    --sheet-ai-bg: #24292e;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
@@ -119,7 +116,7 @@
   .summary p strong { color: var(--ink); font-weight: 600; }
 
   /* セクション */
-  section { margin-top: 72px; scroll-margin-top: 24px; }
+  section { margin-top: 68px; scroll-margin-top: 24px; }
   section:first-of-type { margin-top: 44px; }
   h2 {
     font-size: 19px;
@@ -127,7 +124,7 @@
     letter-spacing: 0.03em;
     padding-bottom: 14px;
     border-bottom: 1px solid var(--hairline);
-    margin-bottom: 28px;
+    margin-bottom: 26px;
     display: flex;
     align-items: baseline;
     gap: 14px;
@@ -139,7 +136,7 @@
     letter-spacing: 0.1em;
     font-family: "Helvetica Neue", Arial, sans-serif;
   }
-  h3 { font-size: 16px; font-weight: 600; margin: 34px 0 10px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 32px 0 10px; }
   p + p { margin-top: 12px; }
   .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
   em { font-style: normal; font-weight: 600; }
@@ -155,126 +152,53 @@
   }
   .point strong { color: var(--ink); font-weight: 600; }
 
-  /* ワークフロー図 */
-  .workflow { margin-top: 20px; }
-  .wf-zone-head {
-    display: flex; align-items: center; gap: 12px;
-    font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
-    margin: 8px 0 12px;
+  /* 3ステップ */
+  .steps { margin-top: 22px; border-top: 1px solid var(--hairline); }
+  .step {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 18px;
+    padding: 20px 4px;
+    border-bottom: 1px solid var(--hairline);
   }
-  .wf-zone-head::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
-  .wf-zone-head.auto { color: var(--accent-dark); }
-  .wf-zone-head.human { color: var(--ink-soft); }
-  .wf-node {
-    display: grid; grid-template-columns: 1fr auto; gap: 10px 16px;
-    align-items: center;
-    border: 1px solid var(--hairline); border-left: 3px solid var(--muted);
-    border-radius: 6px; background: #fff; padding: 14px 18px;
+  .step .num {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.3;
   }
-  .wf-node.input { border-left-color: var(--ink); }
-  .wf-node.auto  { border-left-color: var(--accent); background: #fafdfb; }
-  .wf-node.human { border-left-color: var(--muted); }
-  .wf-eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 3px; }
-  .wf-node.auto .wf-eyebrow { color: var(--accent-dark); }
-  .wf-title { font-weight: 600; font-size: 14.5px; }
-  .wf-desc { font-size: 13px; color: var(--ink-soft); margin-top: 4px; line-height: 1.8; }
-  .wf-tag {
-    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-    padding: 4px 11px; border-radius: 100px; white-space: nowrap;
+  .step .st-title { font-weight: 600; font-size: 15.5px; }
+  .step .st-desc { font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+
+  /* 流れ(1行フロー) */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 22px;
   }
-  .wf-tag.auto  { background: #e3f3e8; color: var(--accent-dark); }
-  .wf-tag.human { background: #eaeef4; color: var(--ink-soft); }
-  .wf-link { display: flex; align-items: center; gap: 11px; padding: 8px 0 8px 30px; }
-  .wf-link .glyph { color: var(--accent-dark); font-size: 15px; line-height: 1; }
-  .wf-link.human .glyph { color: var(--muted); }
-  .wf-link small { font-size: 12.5px; color: var(--muted); letter-spacing: 0.04em; }
-  .wf-loop {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 16px; padding: 12px 16px;
-    border: 1px dashed var(--hairline); border-radius: 6px;
-    font-size: 13px; color: var(--ink-soft);
+  .flow .fl {
+    flex: 1 1 150px;
+    border: 1px solid var(--hairline);
+    border-top: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 16px;
   }
-  .wf-loop .glyph { color: var(--accent-dark); font-size: 16px; }
+  .flow .fl.human { border-top-color: var(--ink); background: var(--bg-soft); }
+  .flow .fl .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--accent-dark); margin-bottom: 5px;
+  }
+  .flow .fl.human .eyebrow { color: var(--ink); }
+  .flow .fl .ttl { font-size: 13.5px; font-weight: 600; line-height: 1.65; }
+  .flow .fl .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
 
   /* モックのキャプション */
-  .mock-caption { font-size: 13px; color: var(--muted); margin: 28px 0 10px; letter-spacing: 0.04em; }
+  .mock-caption { font-size: 13px; color: var(--muted); margin: 26px 0 10px; letter-spacing: 0.04em; }
 
-  /* LINEトーク画面モック */
-  .chat {
-    background: var(--line-bg);
-    border-radius: 12px;
-    max-width: 392px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(26,36,51,0.12);
-  }
-  .chat-head {
-    background: rgba(0,0,0,0.16);
-    color: #fff;
-    padding: 11px 15px;
-    font-size: 13px;
-    font-weight: 600;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .chat-head .count { font-weight: 400; font-size: 12px; opacity: 0.82; }
-  .chat-body { padding: 16px 14px 18px; display: flex; flex-direction: column; gap: 13px; }
-  .msg { display: flex; flex-direction: column; max-width: 80%; }
-  .msg .nm { font-size: 11px; color: rgba(255,255,255,0.92); margin: 0 0 4px 5px; }
-  .msg .b {
-    background: #fff;
-    border-radius: 3px 14px 14px 14px;
-    padding: 9px 13px;
-    font-size: 12.5px; line-height: 1.75;
-    color: #1f242b;
-    white-space: pre-line;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.12);
-  }
-  .msg .thumb {
-    width: 132px; margin-top: 6px;
-    border-radius: 9px; overflow: hidden;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.12);
-  }
-  .msg .thumb .ph {
-    height: 76px;
-    background: linear-gradient(135deg, #c8d3e0 0%, #aab8c9 100%);
-    display: flex; align-items: center; justify-content: center;
-  }
-  .msg .thumb .ph::after {
-    content: ""; width: 34px; height: 26px;
-    border: 2px solid rgba(255,255,255,0.9); border-radius: 4px;
-  }
-  .msg .thumb .cap { background: #fff; font-size: 10.5px; color: var(--muted); padding: 4px 8px; }
-  .chat-sys { text-align: center; margin: 1px 0; }
-  .chat-sys span {
-    display: inline-block;
-    background: rgba(0,0,0,0.2);
-    color: rgba(255,255,255,0.95);
-    font-size: 11px; line-height: 1.6;
-    padding: 5px 13px; border-radius: 100px;
-  }
-
-  /* 抽出 → タスク化 */
-  .extract { margin-top: 2px; }
-  .ex-arrow {
-    display: flex; align-items: center; gap: 11px;
-    padding: 14px 0 14px 22px;
-    font-size: 13px; color: var(--ink-soft);
-  }
-  .ex-arrow .glyph { color: var(--accent-dark); font-size: 16px; }
-  .ex-arrow strong { color: var(--ink); font-weight: 600; }
-  .ex-card {
-    border: 1px solid var(--hairline);
-    border-left: 3px solid var(--accent);
-    border-radius: 6px;
-    background: #fafdfb;
-    padding: 16px 20px;
-    max-width: 460px;
-  }
-  .ex-card .ex-ttl { font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em; color: var(--accent-dark); margin-bottom: 12px; }
-  .ex-card dl { display: grid; grid-template-columns: 96px 1fr; gap: 8px 16px; font-size: 13.5px; margin: 0; }
-  .ex-card dt { color: var(--muted); }
-  .ex-card dd { color: var(--ink); margin: 0; }
-
-  /* 日次サマリ(Flexメッセージ)モック — 実際の通知と同配色(src/notifier.gs) */
+  /* 新着連絡サマリ(Flexメッセージ)モック — 実際の通知と同配色(src/notifier.gs) */
   .line-mock {
     background: var(--line-bg);
     border-radius: 12px;
@@ -282,6 +206,12 @@
     max-width: 430px;
   }
   .line-name { color: rgba(255,255,255,0.95); font-size: 11.5px; margin: 0 0 5px 8px; }
+  .line-bubble {
+    background: #fff; border-radius: 3px 14px 14px 14px;
+    padding: 11px 15px; font-size: 13px; line-height: 1.8;
+    color: #1f242b; max-width: 360px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.12);
+  }
   .fx-bubble {
     background: #fff;
     border-radius: 14px;
@@ -327,24 +257,23 @@
   .sheet table { font-size: 12.5px; }
   .sheet th, .sheet td { padding: 8px 12px; border-bottom: 1px solid #eef1f5; white-space: nowrap; }
   .sheet thead th { border-bottom: 1px solid var(--hairline); font-size: 12px; letter-spacing: 0.02em; }
-  /* 実際のシートと同じ見出し色: 緑=人が記入する列 / 墨色=AIが自動記入する列 */
-  .sheet th.h-human { background: var(--sheet-human-bg); color: #24292e; font-weight: 600; }
-  .sheet th.h-ai { background: var(--sheet-ai-bg); color: #fff; font-weight: 600; }
+  /* 見る列 / 使わない列 */
+  .sheet th.h-use { background: #24292e; color: #fff; font-weight: 600; }
+  .sheet th.h-skip { background: #eef0f3; color: var(--muted); font-weight: 400; }
   .sheet td { color: var(--ink-soft); font-weight: 400; }
-  .sheet td:first-child { color: inherit; font-weight: inherit; white-space: nowrap; }
-  /* 行の塗り分け(実際の条件付き書式と同色。src/setup.gs) */
-  tr.r-todo  td { background: #ffffff; }
-  tr.r-req   td { background: #f4cccc; }
-  tr.r-rush  td { background: #ff2b22; color: #fff; }
+  .sheet td.c-skip { color: #b6bdc8; }
+  .sheet td:first-child { white-space: nowrap; }
+  /* 行の色(タスク状況の初期値による。実際のシートと同色) */
+  tr.r-todo td { background: #ffffff; }
   tr.r-hanei td { background: #4a86d8; color: #fff; }
-  tr.r-cust  td { background: #b6d7a8; }
+  tr.r-hanei td.c-skip { color: #cfe0f7; }
 
   /* 凡例(列の色) */
-  .st-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 20px 0 0; font-size: 12.5px; color: var(--ink-soft); }
-  .st-legend span { display: inline-flex; align-items: center; gap: 7px; }
-  .st-legend .key { width: 20px; height: 13px; border-radius: 3px; border: 1px solid rgba(26,36,51,0.15); }
-  .st-legend .key.human { background: var(--sheet-human-bg); }
-  .st-legend .key.ai { background: var(--sheet-ai-bg); }
+  .col-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 18px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+  .col-legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .col-legend .key { width: 20px; height: 13px; border-radius: 3px; border: 1px solid rgba(26,36,51,0.15); }
+  .col-legend .key.use { background: #24292e; }
+  .col-legend .key.skip { background: #eef0f3; }
 
   /* タスク状況の色見本 */
   .sw {
@@ -428,7 +357,7 @@
   ul.plain li strong { color: var(--ink); font-weight: 600; }
 
   footer {
-    margin-top: 88px;
+    margin-top: 80px;
     padding-top: 20px;
     border-top: 1px solid var(--hairline);
     font-size: 12px;
@@ -462,7 +391,7 @@
     .layout { grid-template-columns: 1fr; }
     section { margin-top: 40px; }
     h2 { break-after: avoid; }
-    .wf-node, .faq-item, .color-key, .sheet, .line-mock, .chat, .ex-card { break-inside: avoid; }
+    .step, .faq-item, .color-key, .sheet, .line-mock, .flow { break-inside: avoid; }
     .sheet table { font-size: 10.5px; }
     .sheet th, .sheet td { white-space: normal; min-width: 5em; padding: 6px 8px; }
     header { padding: 32px 28px; }
@@ -475,10 +404,10 @@
   <div class="header-inner">
     <div class="doc-meta">
       <span>利用者向けマニュアル</span>
-      <span>2026年8月4日</span>
+      <span>2026年8月5日</span>
     </div>
     <h1>LINEタスク管理 利用マニュアル</h1>
-    <p class="subtitle">お客様LINEのご依頼を自動でタスク化し、毎朝共有する仕組みの使い方</p>
+    <p class="subtitle">お客様LINEのご依頼を、1件も落とさないための仕組み</p>
     <div class="keyline"></div>
   </div>
 </header>
@@ -487,103 +416,86 @@
 
   <nav class="toc" id="toc" aria-label="目次">
     <div class="toc-title">目次</div>
-    <a href="#sec1">1. この仕組みでできること</a>
-    <a href="#sec2">2. 毎朝やること — 通知の見方</a>
-    <a href="#sec3">3. タスク一覧シートの使い方</a>
-    <a href="#sec4">4. タスク状況の更新ルール</a>
-    <a href="#sec5">5. LINEでの日常運用</a>
-    <a href="#sec6">6. サロン名と顧客マスタ</a>
-    <a href="#sec7">7. よくある質問・困ったとき</a>
-    <a href="#sec8">8. 付録 — シート早見表</a>
+    <a href="#sec1">1. 何のための仕組みか</a>
+    <a href="#sec2">2. 毎朝これだけやる</a>
+    <a href="#sec3">3. 詳しく見たいとき</a>
+    <a href="#sec4">4. タスク状況の色 早見表</a>
+    <a href="#sec5">5. サロンのグループに追加するとき</a>
+    <a href="#sec6">6. 困ったとき</a>
   </nav>
 
   <main>
 
     <div class="summary">
-      <div class="label">はじめに</div>
-      <p>お客様とのLINEグループのやり取りをAIが読み取り、対応が必要な依頼を<strong>「タスク一覧」シートへ自動で登録</strong>、毎朝10時ごろ<strong>新しく届いた連絡の一覧を社内LINEグループへ通知</strong>する仕組みです。皆さんにお願いする作業は、<strong>「担当者名の記入」と「タスク状況(進捗)の更新」の2つだけ</strong>。お客様への返信はこれまでどおり担当者が行い、新しいアプリの操作を覚える必要はありません。</p>
+      <div class="label">この1ページだけ読めば足ります</div>
+      <p>LINEでいただいたご依頼の<strong>対応漏れをなくすため</strong>の仕組みです。お客様とのLINEグループのやり取りをAIが読み取り、対応が必要な連絡を拾い出して、<strong>毎朝10時ごろ「前回の通知以降に届いた連絡」の一覧</strong>を社内LINEグループへ通知します。皆さんにお願いするのは、<strong>毎朝この通知に目を通し、抜けている対応がないか確かめること</strong>だけです。LINEの使い方も、タスクの管理方法も、これまでと何も変わりません。</p>
     </div>
 
-    <!-- 1. この仕組みでできること -->
+    <!-- 1. 何のための仕組みか -->
     <section id="sec1">
-      <h2><span class="index">01</span>この仕組みでできること</h2>
-      <p>お客様(サロン様)とのLINEグループに記録専用のアカウントが参加しています。このアカウントはグループ内で一切発言せず、届いたメッセージを自動で記録・整理するだけです。全体の流れは次のとおりです。</p>
+      <h2><span class="index">01</span>何のための仕組みか</h2>
+      <p>お客様とのLINEは件数が多く、依頼が他の会話に流れて<em>気づかないまま残ってしまう</em>ことがあります。この仕組みは、それを<em>後から確実に見つけるため</em>のものです。<em>タスク管理のやり方を置き換えるものではありません。</em>タスクの管理はこれまでどおり、既存のタスク管理シートで行ってください。</p>
 
-      <div class="workflow">
-        <div class="wf-node input">
-          <div>
-            <div class="wf-eyebrow">お客様</div>
-            <div class="wf-title">グループLINEにご依頼・ご質問を送信</div>
-          </div>
+      <h3>お客様とのLINEグループに記録用アカウントを追加します</h3>
+      <p>クライアントのサロン様とのLINEグループに、当社の<em>記録専用のアカウント</em>を1つ追加します。このアカウントは<em>グループ内で一切発言せず</em>、届いたメッセージを記録・整理するだけです。お客様とのやり取りはこれまでどおり担当者が行います。まずは一部のサロン様から始め、問題がなければ順次広げていきます(追加の手順は<a href="#sec5">第5章</a>)。</p>
+
+      <div class="flow">
+        <div class="fl">
+          <div class="eyebrow">自動</div>
+          <div class="ttl">お客様の連絡を記録</div>
+          <div class="sub">テキストも画像・ファイルも自動で保存</div>
         </div>
-        <div class="wf-link"><span class="glyph">↓</span><small>記録用アカウントが自動で受信</small></div>
-
-        <div class="wf-zone-head auto">自動で行われる ── システムが担う部分</div>
-
-        <div class="wf-node auto">
-          <div>
-            <div class="wf-eyebrow">記録用アカウント</div>
-            <div class="wf-title">メッセージをそのまま記録</div>
-            <div class="wf-desc">テキストはもちろん、画像・ファイルもDropboxへ自動保存し、リンクを記録します。</div>
-          </div>
-          <div class="wf-tag auto">自動</div>
+        <div class="fl">
+          <div class="eyebrow">自動</div>
+          <div class="ttl">AIが対応の必要な連絡を拾い出す</div>
+          <div class="sub">雑談・お礼は除く。5〜15分で反映</div>
         </div>
-        <div class="wf-link"><span class="glyph">↓</span><small>およそ5分、遅い場合で15分ほどでAIが内容を確認</small></div>
-
-        <div class="wf-node auto">
-          <div>
-            <div class="wf-eyebrow">AI</div>
-            <div class="wf-title">内容を読み取り、依頼だけをタスク化</div>
-            <div class="wf-desc">直前のやり取りの流れをふまえて種別(新規依頼・回答や承認・質問など)を判別し、急ぎかどうかや対応期日を読み取ります。送られた画像は中身まで読み取って作業内容に反映します。「TOP画像を変えたい」とその画像のように、1つのご用件が続けて複数のメッセージで届いた場合は、まとめて1件のタスクにします。</div>
-          </div>
-          <div class="wf-tag auto">自動</div>
+        <div class="fl">
+          <div class="eyebrow">自動</div>
+          <div class="ttl">毎朝、社内LINEへ一覧を通知</div>
+          <div class="sub">前回の通知以降に届いた分をすべて</div>
         </div>
-        <div class="wf-link"><span class="glyph">↓</span><small>「タスク一覧」シートに1行ずつ追加</small></div>
-
-        <div class="wf-node auto">
-          <div>
-            <div class="wf-eyebrow">社内LINEグループ</div>
-            <div class="wf-title">毎朝10時ごろ、新しく届いた連絡を全員へ通知</div>
-            <div class="wf-desc">前回の通知以降に届いた連絡を、届いた順の一覧で届けます(急ぎの案件には印が付きます)。</div>
-          </div>
-          <div class="wf-tag auto">自動</div>
+        <div class="fl human">
+          <div class="eyebrow">皆さん</div>
+          <div class="ttl">通知を見て、抜けがないか確かめる</div>
+          <div class="sub">抜けていたらいつもどおり対応</div>
         </div>
-
-        <div class="wf-zone-head human">皆さんにお願いすること</div>
-
-        <div class="wf-node human">
-          <div>
-            <div class="wf-eyebrow">担当者</div>
-            <div class="wf-title">お客様へ返信・対応する(これまでどおり)</div>
-            <div class="wf-desc">通知やタスク一覧を確認し、これまでどおり担当者がお客様へ返信します。AIが用意した返信の下書きを参考にできます。</div>
-          </div>
-          <div class="wf-tag human">担当者</div>
-        </div>
-        <div class="wf-link human"><span class="glyph">↓</span><small>対応の結果をタスク一覧へ反映</small></div>
-
-        <div class="wf-node human">
-          <div>
-            <div class="wf-eyebrow">担当者</div>
-            <div class="wf-title">担当者名を記入し、タスク状況を更新する</div>
-            <div class="wf-desc">タスク状況をプルダウンで選ぶと行が色分けされ、進捗がひと目で分かります。</div>
-          </div>
-          <div class="wf-tag human">担当者</div>
-        </div>
-
-        <div class="wf-loop"><span class="glyph">↻</span>この流れが毎日くり返され、連絡の見逃しを防ぎます。</div>
       </div>
 
       <div class="point">
-        <strong>皆さんにお願いする作業は「担当者名の記入」と「タスク状況(進捗)の更新」の2つだけです。</strong>記録・タスク化・毎朝の通知はすべて自動で行われます。
+        <strong>お願いするのは、毎朝の通知を確認することだけです。</strong>記録・タスク化・通知はすべて自動で行われます。お客様への返信は、これまでどおり担当者が行います(この仕組みがお客様へ自動で返信することは一切ありません)。
       </div>
     </section>
 
-    <!-- 2. 毎朝やること -->
+    <!-- 2. 毎朝これだけやる -->
     <section id="sec2">
-      <h2><span class="index">02</span>毎朝やること — 通知の見方</h2>
-      <p>毎朝10時台に1回(土日・祝日・年末年始はお休み)、社内LINEグループへ「新着連絡サマリ」が届きます。<em>前回の通知以降に届いた新しい連絡の一覧</em>です(月曜は金曜10時以降の分)。まずこの通知を確認し、見逃している連絡がないかを把握してください。</p>
+      <h2><span class="index">02</span>毎朝これだけやる</h2>
 
-      <p class="mock-caption">毎朝の通知イメージ(実際の通知と同じ構成です)</p>
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div>
+            <div class="st-title">社内LINEグループに届く「新着連絡サマリ」を開く</div>
+            <div class="st-desc">平日の朝10時台に1回届きます(土日・祝日・年末年始12/29〜1/3はお休み)。</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div>
+            <div class="st-title">上から順に、全件が対応済みかを確かめる</div>
+            <div class="st-desc">担当は決めていません。<em>全員が全件に目を通してください。</em>誰か1人でも気づけば、その連絡は落ちません。</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div>
+            <div class="st-title">抜けていた連絡があれば、いつもどおり対応する</div>
+            <div class="st-desc">既存のタスク管理シートに起こして進めてください。この仕組みのシートに書き込む必要はありません。</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="mock-caption">毎朝届く通知(実際の通知と同じ構成です)</p>
       <div class="line-mock">
         <p class="line-name">タスク管理</p>
         <div class="fx-bubble">
@@ -614,7 +526,7 @@
               <div class="w">掲載文の修正依頼</div>
               <div class="m">受信 7/13 16:45 ※要確認</div>
             </div>
-            <div class="fx-warn">※サロン名未設定のグループが1件あります(顧客マスタに記入してください)</div>
+            <div class="fx-warn">※サロン名未設定のグループが1件あります(管理者へご連絡ください)</div>
           </div>
           <div class="fx-foot">
             <div class="fx-btn">タスク一覧を開く</div>
@@ -624,29 +536,29 @@
 
       <h3>通知の読み方</h3>
       <ul class="plain">
-        <li><strong>届いた順の一覧</strong>です。前回の通知以降に届いた連絡がすべて載ります。1件ずつ見逃しがないか確認してください。「受信」の時刻はAIがタスクとして登録した時刻のため、実際にLINEへ届いた時刻より5〜15分ほど後になることがあります。</li>
-        <li><strong>急ぎ｜</strong> ── AIが緊急度を「高」と判定した案件、または期限が近い(初期設定では3日以内)案件に付きます。最優先で確認してください。</li>
-        <li><strong>※要確認</strong> ── AIが判定に自信を持てなかった印です。内容が正しいか、シートで確認してください。</li>
-        <li><strong>表示されるのは最大15件(初期設定)</strong>です。超えた分は「ほか◯件はシート参照」と表示されます。</li>
-        <li><strong>新着が1件もない日も「新着の連絡はありません」という通知が届きます</strong>(システムが正常に動いている確認を兼ねています)。</li>
+        <li><strong>急ぎ｜</strong> ── 緊急度が高い、または期限が近い案件です。<em>最優先で確認してください。</em></li>
+        <li><strong>※要確認</strong> ── AIが判定に自信を持てなかった印です。元の連絡を確認してください(<a href="#sec3">第3章</a>)。</li>
+        <li><strong>表示は最大15件</strong>です。超えた分は「ほか◯件はシート参照」と表示されるので、必ずシートで残りも確認してください。</li>
+        <li><strong>新着が1件もない日も通知が届きます</strong>(「新着の連絡はありません」)。仕組みが正常に動いている合図です。</li>
+        <li>「受信」の時刻は<strong>AIがタスクとして登録した時刻</strong>です。実際にLINEへ届いた時刻より5〜15分ほど後になります。</li>
       </ul>
 
       <div class="point">
-        <strong>「タスク一覧を開く」ボタンを押すと、端末の標準ブラウザでスプレッドシートが開きます。</strong>初回はGoogleへのログインを求められる場合があります。
+        <strong>全員が全件を見てください。</strong>「自分の担当ではなさそう」で飛ばすと、誰も拾わないまま残る連絡が出ます。この仕組みで防ぎたいのは、まさにその1件です。
       </div>
-
-      <p class="note">通知の下部に「分析失敗◯件」「※サロン名未設定のグループが◯件」と表示されることがあります。対処方法は<a href="#sec7">第7章</a>・<a href="#sec6">第6章</a>を参照してください。</p>
     </section>
 
-    <!-- 3. タスク一覧シートの使い方 -->
+    <!-- 3. 詳しく見たいとき -->
     <section id="sec3">
-      <h2><span class="index">03</span>タスク一覧シートの使い方</h2>
-      <p>タスクはすべてスプレッドシートの「タスク一覧」シートに集まります。<em>見出しの色が目印</em>です。<em>緑の見出し</em>は皆さんが記入・更新する列、<em>墨色の見出し</em>はAIが自動で記入する列です。各見出しにカーソルを載せると、詳しい説明のメモが表示されます。</p>
+      <h2><span class="index">03</span>詳しく見たいとき — タスク一覧(見るだけ)</h2>
+      <p>通知の1行だけでは判断できないときは、通知の<em>「タスク一覧を開く」ボタン</em>を押してください。端末の標準ブラウザでスプレッドシートが開きます(初回はGoogleへのログインを求められる場合があります)。</p>
 
-      <div class="st-legend">
-        <span>列の凡例:</span>
-        <span><span class="key human"></span>皆さんが記入・更新する列</span>
-        <span><span class="key ai"></span>AIが自動で記入する列</span>
+      <p>このシートは<em>元の連絡を確かめるための一覧</em>です。<em>進捗の管理には使いません。</em>担当者名やタスク状況を書き込む必要はありません。</p>
+
+      <div class="col-legend">
+        <span>列の見方:</span>
+        <span><span class="key use"></span>確認に使う列</span>
+        <span><span class="key skip"></span>使わない列(記入不要)</span>
       </div>
 
       <div class="sheet">
@@ -655,224 +567,126 @@
         <table>
           <thead>
             <tr>
-              <th class="h-human">対応期日</th>
-              <th class="h-human">納品データ</th>
-              <th class="h-human">担当者名</th>
-              <th class="h-ai">店舗名</th>
-              <th class="h-ai">メッセージ種別</th>
-              <th class="h-ai">作業内容</th>
-              <th class="h-ai">議事録・添付資料</th>
-              <th class="h-human">タスク状況(進捗)</th>
-              <th class="h-ai">タスク発生日</th>
-              <th class="h-ai">元の連絡文</th>
-              <th class="h-ai">返信提案</th>
+              <th class="h-skip">対応期日</th>
+              <th class="h-skip">納品データ</th>
+              <th class="h-skip">担当者名</th>
+              <th class="h-use">店舗名</th>
+              <th class="h-use">メッセージ種別</th>
+              <th class="h-use">作業内容</th>
+              <th class="h-use">議事録・添付資料</th>
+              <th class="h-skip">タスク状況(進捗)</th>
+              <th class="h-use">タスク発生日</th>
+              <th class="h-use">元の連絡文</th>
+              <th class="h-use">返信提案</th>
             </tr>
           </thead>
           <tbody>
-            <tr class="r-rush"><td>本日17:00</td><td>—</td><td>岩切</td><td>サロンB様</td><td>新規依頼</td><td>キャンペーン用バナーの当日修正</td><td>—</td><td>急ぎの対応</td><td>7/14 LINE</td><td>キャンペーンバナーの修正、本日中にお願いできますでしょうか…</td><td>かしこまりました。本日中に…</td></tr>
-            <tr class="r-todo"><td>—</td><td>—</td><td>—</td><td>アース大槻様</td><td>新規依頼</td><td>インスタ投稿用画像の依頼(毎月希望)</td><td>—</td><td>未対応</td><td>7/14 LINE</td><td>インスタ投稿用の画像を毎月お願いしたいです…</td><td>いつもお世話になっております…</td></tr>
-            <tr class="r-req"><td>7/15〜7/16の間で更新</td><td>—</td><td>酒見・西田</td><td>銀座整体院様</td><td>新規依頼</td><td>開始日を7/16へ変更。更新後に完了連絡</td><td>—</td><td>依頼中</td><td>7/13 LINE</td><td>開始日を7/16に変更お願いします。更新できましたらご連絡ください</td><td>開始日の変更、承知いたしました…</td></tr>
-            <tr class="r-cust"><td>—</td><td>—</td><td>西田</td><td>ガーデンウシワカマル様</td><td>質問・確認</td><td>看板画像の確認「こんな感じで大丈夫でしょうか」</td><td>看板画像.jpg(Dropbox)</td><td>お客様連絡待ち</td><td>7/13 LINE</td><td>看板はこんな感じで大丈夫でしょうか<br>(画像を受信)</td><td>—</td></tr>
-            <tr class="r-hanei"><td>—</td><td>修正版データ(Dropbox)</td><td>田中</td><td>サロンH様</td><td>回答・承認</td><td>掲載文の修正を反映(お客様の承認済み)</td><td>—</td><td>反映待ち</td><td>7/12 LINE</td><td>修正内容を確認しました。反映お願いします</td><td>—</td></tr>
+            <tr class="r-todo"><td class="c-skip">本日17:00</td><td class="c-skip">—</td><td class="c-skip">—</td><td>サロンB様</td><td>新規依頼</td><td>キャンペーン用バナーの当日修正</td><td>—</td><td class="c-skip">未対応</td><td>7/14 LINE</td><td>キャンペーンバナーの修正、本日中にお願いできますでしょうか…</td><td>かしこまりました。本日中に…</td></tr>
+            <tr class="r-todo"><td class="c-skip">—</td><td class="c-skip">—</td><td class="c-skip">—</td><td>アース大槻様</td><td>新規依頼</td><td>インスタ投稿用画像の依頼(毎月希望)</td><td>—</td><td class="c-skip">未対応</td><td>7/14 LINE</td><td>インスタ投稿用の画像を毎月お願いしたいです…</td><td>いつもお世話になっております…</td></tr>
+            <tr class="r-todo"><td class="c-skip">—</td><td class="c-skip">—</td><td class="c-skip">—</td><td>ガーデンウシワカマル様</td><td>質問・確認</td><td>看板画像の確認「こんな感じで大丈夫でしょうか」</td><td>看板画像.jpg(Dropbox)</td><td class="c-skip">未対応</td><td>7/13 LINE</td><td>看板はこんな感じで大丈夫でしょうか(画像を受信)</td><td>—</td></tr>
+            <tr class="r-hanei"><td class="c-skip">—</td><td class="c-skip">—</td><td class="c-skip">—</td><td>サロンH様</td><td>回答・承認</td><td>掲載文の修正を反映(お客様の承認済み)</td><td>—</td><td class="c-skip">反映待ち</td><td>7/12 LINE</td><td>修正内容を確認しました。反映お願いします</td><td>—</td></tr>
           </tbody>
         </table>
         </div>
       </div>
-      <p class="note">行の色はタスク状況に応じて自動で変わります(第4章参照)。この右側には非表示のシステム用列(タスクIDなど)がありますが、編集する必要はありません。</p>
+      <p class="note">「タスク状況(進捗)」にはAIが初期値(「未対応」など)を入れるため、行に色が付くことがあります。更新は不要です。右側には非表示のシステム用列がありますが、触る必要はありません。</p>
 
-      <h3>どの列を誰が書くか</h3>
+      <h3>確認に使う列</h3>
       <table>
         <thead>
-          <tr><th style="width:260px;">列</th><th>記入する人</th></tr>
+          <tr><th style="width:230px;">列</th><th>内容</th></tr>
         </thead>
         <tbody>
-          <tr><td>担当者名／納品データ</td><td>あなた(AIは一切書き込みません)。担当者名にはこのタスクを対応するメンバーの名前を、納品データには当社が制作・納品したデータのリンクを記入します。</td></tr>
-          <tr><td>対応期日／タスク状況(進捗)</td><td>AIが初期値を入れ、以後はあなたが更新します(AIが上書きすることはありません)。対応期日は「本日17:00」のような自由な書き方で構いません。</td></tr>
-          <tr><td>議事録・添付資料</td><td>AIが受信した画像・ファイルの保存先リンク(Dropbox)を追記します。あなたも自由に追記できます(既存の内容は消されません)。</td></tr>
-          <tr><td>店舗名／メッセージ種別／作業内容／タスク発生日／元の連絡文／返信提案</td><td>AIが自動記入します。編集は不要です。メッセージ種別は「新規依頼」「回答・承認」「質問・確認」「資料送付」のいずれかです(「雑談・お礼」と判定されたメッセージはタスクになりません)。元の連絡文にはタスクの元になったLINEメッセージの本文が入ります(複数のメッセージをまとめた場合は改行区切り、画像などは「(画像を受信)」の表記)。</td></tr>
+          <tr><td>店舗名／タスク発生日</td><td>どのサロン様から、いつ届いた連絡か。</td></tr>
+          <tr><td>メッセージ種別</td><td>「新規依頼」「回答・承認」「質問・確認」「資料送付」のいずれか(雑談・お礼はタスクになりません)。</td></tr>
+          <tr><td>作業内容</td><td>AIが要約した依頼の内容。画像で届いた依頼は、画像の中身も読み取って反映されます。</td></tr>
+          <tr><td>元の連絡文</td><td>タスクの元になったLINEの本文そのままです。判断に迷ったらここを見てください。</td></tr>
+          <tr><td>議事録・添付資料</td><td>お客様から届いた画像・ファイルの保存先リンク(Dropbox)。</td></tr>
+          <tr><td>返信提案</td><td>AIが作成した<em>返信の下書き</em>です。そのまま送られることはありません。内容を確認し、必要に応じて直したうえで、<em>送信は必ず担当者が行ってください。</em></td></tr>
         </tbody>
       </table>
-
-      <h3>返信提案の使い方</h3>
-      <p>「返信提案」列には、AIが過去のやり取りや社内の返信文例をもとに作成した<em>返信の下書き</em>が入ります。内容を確認し、必要に応じて修正のうえ、<em>送信は必ず担当者が行ってください</em>。AIがお客様へ自動で返信することはありません。</p>
     </section>
 
-    <!-- 4. タスク状況の更新ルール -->
+    <!-- 4. タスク状況の色 早見表 -->
     <section id="sec4">
-      <h2><span class="index">04</span>タスク状況の更新ルール</h2>
-      <p>対応が進んだら、「タスク状況(進捗)」列をプルダウンから選んで更新してください。値を変えると行全体の色が自動で変わります。(朝の通知は「新着連絡の一覧」のため、タスク状況の値は通知には影響しません。)</p>
+      <h2><span class="index">04</span>タスク状況の色 早見表</h2>
+      <p>既存のタスク管理シートに、進捗を表す<em>「タスク状況」列</em>を新しく追加しました。プルダウンから選ぶと、行全体が下の色に塗り分けられます。<em>変更は必ずプルダウン(セル右の「▾」)から選んでください。</em>手入力では色が変わりません。</p>
 
       <div class="color-key">
-        <div class="ck-head">タスク状況(進捗)の10区分 ── 選ぶと行がこの色に塗り分けられます</div>
-        <div class="ck-row"><span class="sw" style="background:#ffffff;"></span><span class="ck-name">未対応</span><span class="ck-desc">着手前の案件(登録時の初期値)</span></div>
+        <div class="ck-head">タスク状況の10区分 ── 選ぶと行がこの色になります</div>
+        <div class="ck-row"><span class="sw" style="background:#ffffff;"></span><span class="ck-name">未対応</span><span class="ck-desc">着手前</span></div>
         <div class="ck-row"><span class="sw" style="background:#f4cccc;"></span><span class="ck-name">依頼中</span><span class="ck-desc">対応を依頼し、返答・作業待ち</span></div>
         <div class="ck-row"><span class="sw" style="background:#f4921e;"></span><span class="ck-name">作業完了・未チェック</span><span class="ck-desc">作業は完了、社内チェック前</span></div>
         <div class="ck-row"><span class="sw" style="background:#ec47dd;"></span><span class="ck-name">チェック完了・残りお客様連絡</span><span class="ck-desc">チェック済み。あとはお客様へ連絡</span></div>
         <div class="ck-row"><span class="sw" style="background:#b7b7b7;"></span><span class="ck-name">タスク完了済み</span><span class="ck-desc">すべて完了・クローズ</span></div>
         <div class="ck-row"><span class="sw" style="background:#ffe14d;"></span><span class="ck-name">佐藤さん提出</span><span class="ck-desc">佐藤さんからの提出・確認待ち</span></div>
-        <div class="ck-row"><span class="sw" style="background:#ff2b22;"></span><span class="ck-name">急ぎの対応</span><span class="ck-desc">最優先。対応期日に赤字で期限を記入してください</span></div>
+        <div class="ck-row"><span class="sw" style="background:#ff2b22;"></span><span class="ck-name">急ぎの対応</span><span class="ck-desc">最優先。期限も記入してください</span></div>
         <div class="ck-row"><span class="sw" style="background:#4a86d8;"></span><span class="ck-name">反映待ち</span><span class="ck-desc">下書き登録後、連絡まで完了したもの</span></div>
         <div class="ck-row"><span class="sw" style="background:#b6d7a8;"></span><span class="ck-name">お客様連絡待ち</span><span class="ck-desc">お客様からの連絡待ち</span></div>
-        <div class="ck-row"><span class="sw" style="background:#d9d9d9;"></span><span class="ck-name strike">対象外</span><span class="ck-desc">AIが誤って登録したもの。削除せずこの値に変更</span></div>
+        <div class="ck-row"><span class="sw" style="background:#d9d9d9;"></span><span class="ck-name strike">対象外</span><span class="ck-desc">取り下げ・対応不要になったもの</span></div>
       </div>
-
-      <h3>更新時のルール</h3>
-      <ul class="plain">
-        <li><strong>変更は必ずプルダウン(セル右の「▾」)から選んでください。</strong>手入力すると行の色が変わらないことがあります。</li>
-        <li><strong>対応がすべて終わったら「タスク完了済み」に。</strong>シート上でひと目で完了が分かるようになります。</li>
-        <li><strong>AIが関係ないメッセージをタスクにしてしまったら、行を削除せず「対象外」に変更してください。</strong>記録として残すためです。</li>
-        <li>新しく登録されるタスクの初期値は通常「未対応」です。お客様が「お願いします」等で承認された案件は「反映待ち」で登録されます。</li>
-      </ul>
     </section>
 
-    <!-- 5. LINEでの日常運用 -->
+    <!-- 5. サロンのグループに追加するとき -->
     <section id="sec5">
-      <h2><span class="index">05</span>LINEでの日常運用</h2>
-      <p><em>LINEでの操作は、これまでと何も変わりません。</em>記録用アカウントへの指示やコマンドは一切不要で、普段どおりお客様とやり取りするだけで自動的に記録・タスク化されます。記録用アカウントがグループ内で発言することもありません。</p>
-
-      <h3>何がタスクになるか</h3>
-      <table>
-        <thead>
-          <tr><th style="width:200px;">メッセージ</th><th>扱い</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>お客様のテキスト・画像・ファイル</td><td>AIが内容を読み取り、対応が必要なものをタスク化します。「ありがとうございます」のような短い返信でも、直前のやり取りから承認の意味があれば拾います。</td></tr>
-          <tr><td>お客様の雑談・お礼のみの発言</td><td>記録はされますが、タスクにはなりません。</td></tr>
-          <tr><td>自社メンバーの発言・スタンプ</td><td>タスク化の対象外です(記録のみ)。</td></tr>
-          <tr><td>1対1のトーク</td><td>対象外です。記録・タスク化されるのは記録用アカウントが参加しているグループのみです。</td></tr>
-        </tbody>
-      </table>
-
-      <h3>画像も中身まで読み取ります</h3>
-      <p>お客様が送った画像は、AIが中身まで読み取って作業内容や返信提案に反映します。たとえばクーポン画像なら「クーポン画像(20%OFF)の差し替え依頼」のように具体的なタスクになります。</p>
-
-      <p class="mock-caption">画像付きの依頼が、こうしてタスクになります</p>
-      <div class="chat">
-        <div class="chat-head">サロンA様<span class="count">3</span></div>
-        <div class="chat-body">
-          <div class="msg">
-            <div class="nm">サロンA</div>
-            <div class="b">お世話になっております。ホットペッパーの広告バナーを差し替えたいので、画像をお送りします。</div>
-            <div class="thumb"><div class="ph"></div><div class="cap">バナー画像_7月.jpg</div></div>
-          </div>
-          <div class="chat-sys"><span>記録用アカウントがこのグループに参加しています(メッセージには反応しません)</span></div>
-        </div>
-      </div>
-      <div class="extract">
-        <div class="ex-arrow"><span class="glyph">↓</span><strong>AI</strong>が画像の中身まで確認し、1件のタスクに整理</div>
-        <div class="ex-card">
-          <div class="ex-ttl">タスク一覧に自動で追加される内容</div>
-          <dl>
-            <dt>タスク発生日</dt><dd>7/14 LINE</dd>
-            <dt>店舗名</dt><dd>サロンA様</dd>
-            <dt>メッセージ種別</dt><dd>新規依頼</dd>
-            <dt>作業内容</dt><dd>ホットペッパー広告バナー(7月版)の差し替え</dd>
-            <dt>議事録・添付資料</dt><dd>バナー画像_7月.jpg をDropboxへ保存しリンクを記録</dd>
-            <dt>タスク状況</dt><dd>初期値「未対応」で登録(以降は担当者が更新)</dd>
-          </dl>
-        </div>
-      </div>
+      <h2><span class="index">05</span>サロンのグループに追加するとき</h2>
+      <p>展開するサロン様が決まったら、担当者がそのLINEグループへ記録用アカウントを招待します。</p>
 
       <ul class="plain">
-        <li>受信した画像・ファイルは<strong>すぐにDropboxへ自動保存</strong>され、リンクが記録されます(タスクになった場合は「議事録・添付資料」列にも入ります)。保存先はDropboxの「お客様＞お預かり画像」内の日付別フォルダ(例: 2025.1.19サロンA様)です。保存に失敗した場合は管理者へ自動で通知されます。</li>
-        <li>対応中のタスクに関する資料が後から届いた場合は、「資料送付」のタスクとして登録されると同時に、<strong>元のタスクの「議事録・添付資料」列にもリンクが自動で追記</strong>されます。</li>
-        <li>AIが一度に読み取る画像は<strong>最大3枚・1枚4MBまで</strong>です。超えた分は保存はされますが、タスク化の判定は本文のみで行われます。</li>
-        <li>動画・音声もDropboxへ保存されます(AIが中身を読み取るのは画像のみです)。動画・音声はLINE側の変換処理を待ってから保存するため、<strong>保存までしばらく時間がかかることがあります</strong>(まる1日たっても変換が終わらない場合は保存を打ち切り、管理者へ自動で通知されます)。</li>
+        <li><strong>招待の前に、他社の公式アカウントが入っていないか確認してください。</strong>1つのグループに公式アカウントは1つしか入れません。すでに入っている場合は、新しいグループを作成のうえ招待してください。</li>
+        <li><strong>お客様へひとこと案内してから招待してください。</strong>文例は下記のとおりです。</li>
+        <li><strong>招待後、最初のご依頼で動作を確認してください。</strong>連絡から5〜15分ほどでタスク一覧に行が追加され、翌朝の通知に載れば正常です。</li>
+        <li><strong>通知やシートのサロン名が空欄・不自然だった場合は管理者へ連絡してください。</strong>通常はLINEのグループ名がそのままサロン名になります。</li>
+        <li><strong>社内用・テスト用のグループに追加した場合は、必ず管理者へ連絡してください。</strong>お客様のグループと区別する設定が必要です(設定しないと社内の発言がタスクとして登録されます)。</li>
       </ul>
 
-      <div class="point">
-        <strong>タスクへの反映は通常5分ほど、遅い場合で15分ほどかかります。</strong>AIは5分ごとに動きますが、ご依頼の文面とその画像が続けて届くことがあるため、最後のメッセージから少し待ってまとめて読み取ります。メッセージ送信の直後にシートに現れなくても、しばらく待ってから確認してください。
+      <p class="mock-caption">お客様へのご案内文(例)</p>
+      <div class="line-mock" style="max-width:500px;">
+        <p class="line-name">担当者</p>
+        <div class="line-bubble">ご依頼の対応漏れを防止するため、管理用のアカウントをこのグループに追加させていただきます。やり取りはこれまでどおり◯◯(担当者)が行いますのでご安心ください。</div>
       </div>
     </section>
 
-    <!-- 6. サロン名と顧客マスタ -->
+    <!-- 6. 困ったとき -->
     <section id="sec6">
-      <h2><span class="index">06</span>サロン名と顧客マスタ</h2>
-      <p>「顧客マスタ」シートは、LINEグループとサロン名の対応表です。タスクや通知に表示されるサロン名は、このシートのB列から引き当てられます。</p>
-
-      <ul class="plain">
-        <li><strong>記録用アカウントが新しいグループに追加されると、LINEのグループ名がサロン名として自動で入ります。</strong>行の追加操作は不要です。</li>
-        <li><strong>表記を変えたい場合はB列(サロン名)を直接上書きしてください。</strong>一度記入した値をAIが変更することはなく、以後のタスク・通知には記入した表記が使われます。</li>
-        <li><strong>朝の通知に「※サロン名未設定のグループが◯件」と出たら</strong>、顧客マスタでB列(サロン名)が空欄の行を探して記入してください。それ以降のタスクや通知に反映されます。</li>
-        <li><strong>社内の連絡用・テスト用グループは、C列の「状態」を「社内」に変更してください。</strong>お客様向けの記録・分析の対象外になります。</li>
-        <li><strong>「社内」のグループで発言したメンバーは、「設定」シートの「自社メンバーuserIDリスト」へ自動で登録されます。</strong>以後、お客様グループでのそのメンバーの発言は「自社」の発言として扱われます(タスク化の対象外)。新しいメンバーが入ったら、社内グループで1回発言してもらってください。退職などでメンバーが抜けた場合は、管理者が設定シートのリストから該当のIDを削除し、あわせてLINEグループからも退出させてください(社内グループに残ったまま発言すると自動で再登録されます)。</li>
-        <li>記録用アカウントがグループから退出すると、状態は自動で「退出」になります。</li>
-      </ul>
-    </section>
-
-    <!-- 7. よくある質問・困ったとき -->
-    <section id="sec7">
-      <h2><span class="index">07</span>よくある質問・困ったとき</h2>
+      <h2><span class="index">06</span>困ったとき</h2>
       <div class="faq">
         <dl>
           <div class="faq-item">
-            <dt>お客様に自動返信が送られることはありませんか。</dt>
-            <dd>ありません。記録用アカウントはグループ内で一切発言しません。「返信提案」はシート内の下書きであり、送信はすべて担当者が行います。</dd>
+            <dt>お客様に自動で返信が送られることはありませんか。</dt>
+            <dd>ありません。記録用アカウントはグループ内で一切発言しません。「返信提案」はシート内の下書きで、送信はすべて担当者が行います。</dd>
           </div>
           <div class="faq-item">
-            <dt>メッセージを送ったのにタスクが登録されません。</dt>
-            <dd>タスクへの反映は通常5分ほど、遅い場合で15分ほどかかります。まずしばらく待ってください。また、雑談・お礼だけの発言、スタンプ、自社メンバーの発言はタスクになりません。それでも登録されない場合は管理者へ連絡してください。</dd>
+            <dt>お客様から連絡が来たのに、タスクに出てきません。</dt>
+            <dd>反映まで通常5分、遅い場合で15分ほどかかります。まずお待ちください。また、雑談・お礼だけの発言、スタンプ、自社メンバーの発言、1対1のトークはタスクになりません。それでも出てこない場合は管理者へ連絡してください。</dd>
           </div>
           <div class="faq-item">
-            <dt>AIが関係ないメッセージをタスクにしてしまいました。</dt>
-            <dd>行は削除せず、タスク状況を「対象外」に変更してください(記録として残ります)。取りこぼしを防ぐため、AIは迷ったら多めに拾う設定になっています。不要なものを人が除外する運用です。</dd>
-          </div>
-          <div class="faq-item">
-            <dt>1つのご依頼が2件のタスクに分かれてしまいました。</dt>
-            <dd>ご依頼の文面とその画像のように、続けて届いた1つのご用件はまとめて1件のタスクになりますが、間が空いた場合や、同じ用件だとAIが判断しきれなかった場合は分かれることがあります。不要な方のタスク状況を「対象外」に変更してください。別々のご用件が誤って1件にまとめられるのを避けるため、AIは迷ったら分ける設定になっています。</dd>
-          </div>
-          <div class="faq-item">
-            <dt>タスク状況を変えたのに行の色が変わりません。</dt>
-            <dd>手入力ではなく、プルダウン(セル右の「▾」)から選んでください。</dd>
-          </div>
-          <div class="faq-item">
-            <dt>通知やタスクのサロン名が空欄・不自然になっています。</dt>
-            <dd>「顧客マスタ」シートのB列を記入・修正してください。それ以降のタスクや通知に反映されます(第6章参照)。</dd>
-          </div>
-          <div class="faq-item">
-            <dt>朝の通知に「分析失敗◯件」と表示されました。</dt>
-            <dd>一部のメッセージをAIが読み取れなかったサインです。エラーは自動で管理者にも通知されているため、まずは管理者へ確認してください。該当のやり取りはLINEのトーク履歴でも確認できます。</dd>
-          </div>
-          <div class="faq-item">
-            <dt>画像を送ってもらったのに、タスクに画像の内容が反映されていません。</dt>
-            <dd>一度に読み取れる画像は最大3枚・1枚4MBまでです。超えた分やAIが取得できなかった分は、本文のみで判定されます(多くの場合、画像自体はDropboxに保存されています。保存に失敗した場合は管理者へ自動で通知されます)。内容を確認してタスクを直接修正してください。</dd>
+            <dt>関係のない連絡までタスクになっています。</dt>
+            <dd>そのままで構いません。このシートは見落としを確認するためのもので、消す必要はありません。取りこぼしを防ぐため、AIは迷ったら多めに拾う設定にしています。</dd>
           </div>
           <div class="faq-item">
             <dt>朝の通知が届きません。</dt>
-            <dd>通知は毎朝10時台に1回、社内LINEグループに届きます(土日・祝日・年末年始12/29〜1/3はお休みです)。平日に届いていない場合はシステムの通数上限やエラーの可能性があるため、管理者へ連絡してください。タスクはスプレッドシートから直接確認できます。</dd>
+            <dd>通知は平日の朝10時台に1回です(土日・祝日・年末年始12/29〜1/3はお休み)。平日に届いていない場合は管理者へ連絡してください。タスク一覧はスプレッドシートから直接確認できます。</dd>
           </div>
           <div class="faq-item">
-            <dt>困ったときは誰に連絡すればよいですか。</dt>
+            <dt>通知に「分析失敗◯件」「サロン名未設定のグループが◯件」と出ました。</dt>
+            <dd>どちらも管理者へ連絡してください。「分析失敗」は一部の連絡をAIが読み取れなかったサインです。該当のやり取りはLINEのトーク履歴で確認できます。</dd>
+          </div>
+          <div class="faq-item">
+            <dt>タスク状況を変えたのに、行の色が変わりません。</dt>
+            <dd>手入力ではなく、プルダウン(セル右の「▾」)から選んでください。</dd>
+          </div>
+          <div class="faq-item">
+            <dt>そのほか困ったときは。</dt>
             <dd>システム管理者へ連絡してください。システムのエラーは自動で管理者にも通知されています。</dd>
           </div>
         </dl>
       </div>
     </section>
 
-    <!-- 8. 付録 -->
-    <section id="sec8">
-      <h2><span class="index">08</span>付録 — シート早見表</h2>
-      <p>スプレッドシートには7枚のシートがあります。日常的に使うのは「タスク一覧」だけです。</p>
-      <table>
-        <thead>
-          <tr><th style="width:190px;">シート</th><th>役割</th><th style="width:150px;">使う人</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>使い方</td><td>シートの使い方の説明(このマニュアルの要約)</td><td>はじめての方</td></tr>
-          <tr><td>タスク一覧</td><td>タスクの一覧。AIが登録し、人が状況を更新します</td><td>全員(毎日)</td></tr>
-          <tr><td>顧客マスタ</td><td>LINEグループとサロン名の対応表</td><td>グループ追加時</td></tr>
-          <tr><td>設定</td><td>システムの動作調整(通知の表示件数など)</td><td>管理者のみ</td></tr>
-          <tr><td>返信テンプレート</td><td>AIが返信提案を作る際に参考にする返信文例</td><td>管理者のみ</td></tr>
-          <tr><td>メッセージログ</td><td>受信メッセージの記録(自動)</td><td>通常開く必要なし</td></tr>
-          <tr><td>エラーログ</td><td>システムエラーの記録(自動)</td><td>通常開く必要なし</td></tr>
-        </tbody>
-      </table>
-      <p class="note">「設定」「返信テンプレート」の内容を変更したい場合や、システムの構築・保守については管理者へ相談してください(管理者向けの手順は<a href="./setup.html">構築手順書</a>にまとめられています)。</p>
-    </section>
-
     <footer>
       <span>株式会社サイバーアクセル・アドバイザーズ</span>
-      <span>LINEタスク管理 利用マニュアル|2026年8月4日</span>
+      <span>LINEタスク管理 利用マニュアル|2026年8月5日</span>
     </footer>
 
   </main>
