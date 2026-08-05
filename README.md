@@ -21,6 +21,7 @@
 | `docs/manual.html` | 利用マニュアル(現場スタッフ向け・GitHub Pages で公開) |
 | `documents/proposal.md` | 詳細な対策案・技術仕様(旧版。仕様が食い違う場合は `docs/index.html` が正) |
 | `documents/implementation-plan.md` | 実装プラン(GAS構成・シート設計・セットアップ手順・テスト計画) |
+| `documents/production-switchover.md` | 本番環境切替手順(テスト運用からの設定切替・パイロット展開・切戻し) |
 | `src/` | Google Apps Script 実装(clasp 管理。`rootDir: "src"`。各ファイルの責務は implementation-plan.md §2.1 参照) |
 | `tools/hpb-status-colors/` | 先方の既存タスクシートへ「タスク状況の色分け」(条件付き書式)だけを移植する単体スクリプト(Bot本体とは独立・コピペ納品用) |
 | `tools/task-status-column/` | 先方の既存タスクシートへ「タスク状況」プルダウン列を新設し色分けする単体スクリプト(同上。列挿入を伴う点が上と異なる) |
