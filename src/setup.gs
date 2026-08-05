@@ -21,23 +21,26 @@ const TASK_STATUS_STYLES = [
   // 「未対応」は白(既定色)のためルール不要
 ];
 
-// ヘッダー見出しの塗り分け: 緑=人が記入・更新する列 / 墨色=AIが自動記入する列
+// ヘッダー見出しの塗り分け: 緑=人が記入・更新する列 / 墨色=AIが自動記入する列 /
+// グレー=使わない列(進捗管理は既存のタスク管理シートへ一本化したため)
 const HEADER_STYLE = {
   HUMAN_BG: '#d9f2e5',
   HUMAN_FONT: '#24292e',
   AI_BG: '#24292e',
-  AI_FONT: '#ffffff'
+  AI_FONT: '#ffffff',
+  UNUSED_BG: '#eef0f3',
+  UNUSED_FONT: '#7b879a'
 };
 
-// 各シートのヘッダー定義: { name: 見出し, human: 人が記入・更新する列, note: セルメモ }
+// 各シートのヘッダー定義: { name: 見出し, human: 人が記入・更新する列, unused: 使わない列, note: セルメモ }
 // タスク一覧(§3.1)。A〜Kは既存業務シートの列名を踏襲(J: 元の連絡文のみ追加)、L〜S(非表示管理列)は平易名
 const TASK_HEADER_DEFS = [
-  { name: '対応期日', human: true,
-    note: '【記入する人】メッセージから読み取れた場合にAIが初期値を記入します。確定・変更は担当者が行ってください(AIは上書きしません)。\n【内容】対応の期日。自由な書き方で構いません。\n【例】本日17:00／6/30〜7/1の間で更新' },
-  { name: '納品データ', human: true,
-    note: '【記入する人】担当者が記入します。AIは一切書き込みません。\n【内容】当社が制作・納品したデータのリンクなど。\n【例】https://www.dropbox.com/...' },
-  { name: '担当者名', human: true,
-    note: '【記入する人】担当者が記入します。AIは一切書き込みません。\n【内容】このタスクを対応する社内メンバーの名前。\n【例】山田' },
+  { name: '対応期日', unused: true,
+    note: '【この列は使いません】進捗の管理は既存のタスク管理シートで行います。\n【内容】メッセージから読み取れた場合にAIが期日を記入しますが、更新は不要です。' },
+  { name: '納品データ', unused: true,
+    note: '【この列は使いません】進捗の管理は既存のタスク管理シートで行います。AIも書き込みません。' },
+  { name: '担当者名', unused: true,
+    note: '【この列は使いません】進捗の管理は既存のタスク管理シートで行います。AIも書き込みません。' },
   { name: '店舗名',
     note: '【記入する人】AIが自動記入します(顧客マスタから引き当て)。\n【内容】依頼元のサロン名。空欄の場合は顧客マスタのサロン名を記入してください。\n【例】サロンA様' },
   { name: 'メッセージ種別',
@@ -46,8 +49,8 @@ const TASK_HEADER_DEFS = [
     note: '【記入する人】AIが自動記入します。\n【内容】依頼内容の1行まとめ。\n【例】ホットペッパー広告バナーの差し替え' },
   { name: '議事録・添付資料',
     note: '【記入する人】AIと担当者の両方。AIは受信した画像・ファイルの保存先リンクを追記します(既存の内容は消しません)。\n【内容】議事録や資料のリンク。\n【例】https://www.dropbox.com/...' },
-  { name: 'タスク状況(進捗)', human: true,
-    note: '【記入する人】登録時にAIが初期値(未対応または反映待ち)を入れます。以後の更新は担当者がプルダウンから選んでください。\n【内容】値を変えると行全体の色が自動で変わります。\n【例】作業が終わったら「作業完了・未チェック」に変更' },
+  { name: 'タスク状況(進捗)', unused: true,
+    note: '【この列は使いません】進捗の管理は既存のタスク管理シートで行います。\n【内容】登録時にAIが初期値(未対応または反映待ち)を入れ、その値で行に色が付きますが、更新は不要です。' },
   { name: 'タスク発生日',
     note: '【記入する人】AIが自動記入します。\n【内容】タスクの発生日と発生元。\n【例】7/14 LINE' },
   { name: '元の連絡文',
@@ -129,21 +132,6 @@ const ERROR_HEADER_DEFS = [
   { name: 'スタックトレース' }
 ];
 
-// 使い方シートのタスク状況凡例(意味の説明。色は TASK_STATUS_STYLES を再利用)。
-// 並びは TASK_STATUS_ORDER と一致させる
-const GUIDE_STATUS_MEANINGS = [
-  { status: '未対応', meaning: '着手前の案件(登録時の初期値)' },
-  { status: '依頼中', meaning: '対応を依頼し、返答・作業待ち' },
-  { status: '作業完了・未チェック', meaning: '作業は完了、社内チェック前' },
-  { status: 'チェック完了・残りお客様連絡', meaning: 'チェック済み。あとはお客様へ連絡' },
-  { status: 'タスク完了済み', meaning: 'すべて完了・クローズ' },
-  { status: '佐藤さん提出', meaning: '佐藤さんからの提出・確認待ち' },
-  { status: '急ぎの対応', meaning: '最優先。対応期日に赤字で期限を記入' },
-  { status: '反映待ち', meaning: '下書き登録後、連絡まで完了したもの' },
-  { status: 'お客様連絡待ち', meaning: 'お客様からの連絡待ち' },
-  { status: '対象外', meaning: 'AIが誤って登録したもの。削除せずこの値に変更' }
-];
-
 /** 全シート・プルダウン・条件付き書式・非表示列を生成する(GASエディタから手動実行) */
 function setupSpreadsheet() {
   const ss = getSpreadsheet_();
@@ -165,6 +153,29 @@ function setupSpreadsheet() {
 }
 
 /**
+ * 稼働中のスプレッドシートへ、説明の変更を反映する(GASエディタから手動実行)。
+ * setupSpreadsheet() は既存シートをスキップするため、「使い方」シートの文面や
+ * タスク一覧のヘッダー(色・メモ)を更新したときはこちらを実行する。
+ * 「使い方」シートは説明専用(プログラムから読み書きしない)なので作り直す。
+ * タスク一覧は1行目のヘッダーだけを再設定し、タスクのデータには触れない。
+ * 前提: タスク一覧の列レイアウトが最新であること(未移行のシートに実行すると
+ * ヘッダーと実データの列がずれる。先に migrateTaskSheetAddOriginalText() を実行する)。
+ */
+function refreshGuideAndHeaders() {
+  const ss = getSpreadsheet_();
+  const guide = ss.getSheetByName(SHEET.GUIDE);
+  if (guide) ss.deleteSheet(guide);
+  createSheetIfMissing_(ss, SHEET.GUIDE, buildGuideSheet_, 0);
+
+  const task = ss.getSheetByName(SHEET.TASK);
+  if (task) {
+    setHeader_(task, TASK_HEADER_DEFS);
+    console.log('シート「' + SHEET.TASK + '」のヘッダーを再設定');
+  }
+  console.log('refreshGuideAndHeaders 完了');
+}
+
+/**
  * シートが存在しなければ作成してbuilderを適用、存在すれば完全スキップ。
  * index を指定するとタブ位置を指定して作成する(0=先頭。既存シートの位置は変えない)。
  */
@@ -179,16 +190,22 @@ function createSheetIfMissing_(ss, name, builder, index) {
 }
 
 /**
- * ヘッダー行を設定する。defs: [{ name, human, note }]
- * 見出しは緑(人が記入・更新する列)と墨色(AIが自動記入する列)に塗り分け、
- * メモで「何が入るか・誰が書くか・記入例」を示す(色ルールの凡例は使い方シート)。
+ * ヘッダー行を設定する。defs: [{ name, human, unused, note }]
+ * 見出しは緑(人が記入・更新する列)・墨色(AIが自動記入する列)・グレー(使わない列)に塗り分け、
+ * メモで「何が入るか・誰が書くか・記入例」を示す(列の見方は使い方シート)。
  */
 function setHeader_(sheet, defs) {
   const range = sheet.getRange(1, 1, 1, defs.length);
   range.setValues([defs.map(function (d) { return d.name; })]);
   range.setFontWeight('bold');
-  range.setBackgrounds([defs.map(function (d) { return d.human ? HEADER_STYLE.HUMAN_BG : HEADER_STYLE.AI_BG; })]);
-  range.setFontColors([defs.map(function (d) { return d.human ? HEADER_STYLE.HUMAN_FONT : HEADER_STYLE.AI_FONT; })]);
+  range.setBackgrounds([defs.map(function (d) {
+    if (d.unused) return HEADER_STYLE.UNUSED_BG;
+    return d.human ? HEADER_STYLE.HUMAN_BG : HEADER_STYLE.AI_BG;
+  })]);
+  range.setFontColors([defs.map(function (d) {
+    if (d.unused) return HEADER_STYLE.UNUSED_FONT;
+    return d.human ? HEADER_STYLE.HUMAN_FONT : HEADER_STYLE.AI_FONT;
+  })]);
   range.setNotes([defs.map(function (d) { return d.note || null; })]);
   sheet.setFrozenRows(1);
 }
@@ -272,49 +289,39 @@ function buildGuideSheet_(sheet) {
   function pushNote(text) { marks.notes.push(push(text)); }
 
   const titleRow = push('LINEタスク管理の使い方');
-  const ledeRow = push('はじめての方はこのシートからお読みください。お客様とのLINEのやり取りをAIが読み取り、対応が必要な依頼を「タスク一覧」シートへ自動で登録する仕組みです。');
+  const ledeRow = push('お客様LINEでいただいたご依頼の対応漏れをなくすための一覧です。AIが対応の必要な連絡を拾い出して自動で登録し、毎朝10時ごろ、新しく届いた連絡の一覧を社内LINEグループへ通知します。');
   push();
 
-  pushHeading('1. 全体の流れ');
-  push('(1) お客様がLINEグループに投稿');
-  push('(2) AIがメッセージの内容を読み取り');
-  push('(3) 「タスク一覧」シートに自動で登録(5分ごと)');
-  push('(4) 毎朝10時ごろ(土日祝・年末年始を除く)、前回の通知以降に届いた新しい連絡のサマリを社内LINEグループへ通知');
-  const calloutRow = push('皆さんにお願いする作業は「担当者名の記入」と「タスク状況(進捗)の更新」の2つだけです。');
+  pushHeading('1. 毎朝これだけやる');
+  push('(1) 社内LINEグループに届く「新着連絡サマリ」を開く(平日の朝10時台に1回。土日・祝日・年末年始12/29〜1/3はお休み)');
+  push('(2) 上から順に、全件が対応済みかを確かめる(担当は決めていません。全員が全件に目を通してください)');
+  push('(3) 抜けていた連絡があれば、いつもどおり既存のタスク管理シートに起こして対応する');
+  const calloutRow = push('このシートに書き込む必要はありません。進捗の管理は、これまでどおり既存のタスク管理シートで行ってください。');
   push();
 
-  pushHeading('2. 各シートの役割');
-  pushSubheader('シート', '役割', '使う人');
-  push('タスク一覧', 'タスクの一覧。AIが登録し、人が状況を更新します', '全員(毎日)');
-  push('顧客マスタ', 'LINEグループとサロン名の対応表。Bot参加時にグループ名が自動で入ります。表記を変えたい場合は上書きしてください', 'グループ追加時');
-  push('設定・返信テンプレート', 'システムの動作調整と返信文例', '管理者のみ');
-  push('メッセージログ・エラーログ', 'システムの記録(自動)。通常は開く必要はありません', 'システム用');
+  pushHeading('2. このシートの見方');
+  pushSubheader('列', '内容');
+  push('店舗名／タスク発生日', 'どのサロン様から、いつ届いた連絡か');
+  push('メッセージ種別', '新規依頼／回答・承認／質問・確認／資料送付のいずれか(雑談・お礼はタスクになりません)');
+  push('作業内容', 'AIが要約した依頼の内容(画像で届いた依頼は、画像の中身も読み取って反映されます)');
+  push('元の連絡文', 'タスクの元になったLINEの本文。判断に迷ったらここを確認してください');
+  push('議事録・添付資料', 'お客様から届いた画像・ファイルの保存先リンク(Dropbox)');
+  push('返信提案', 'AIが作成した返信の下書き。そのまま送られることはありません。送信は必ず担当者が行ってください');
+  pushNote('「対応期日」「納品データ」「担当者名」「タスク状況(進捗)」の4列は使いません(AIが入れた初期値のままで構いません)。タスク状況の初期値によって行に色が付くことがありますが、更新は不要です。');
+  pushNote('このファイルの他のシート(顧客マスタ・設定・返信テンプレート・各種ログ)は管理者用です。開く必要はありません。');
   push();
 
-  pushHeading('3. タスク状況と行の色');
-  pushSubheader('タスク状況', '意味');
-  const statusStartRow = rows.length + 1;
-  GUIDE_STATUS_MEANINGS.forEach(function (item) { push(item.status, item.meaning); });
-  push();
-
-  pushHeading('4. どの列を誰が書くか(タスク一覧)');
-  pushSubheader('列', '記入する人');
-  push('担当者名／納品データ', 'あなた(AIは書き込みません)');
-  push('対応期日／タスク状況(進捗)', 'AIが初期値を入れ、以後はあなたが更新');
-  push('議事録・添付資料', 'AIが資料の保存リンクを追記。あなたも自由に追記できます');
-  push('店舗名／メッセージ種別／作業内容／タスク発生日／元の連絡文／返信提案', 'AIが自動記入(編集不要)');
-  pushNote('見出しの色が目印です: 緑=人が触る列、墨色=AIの列。各見出しにカーソルを載せると詳しい説明が表示されます。');
-  push();
-
-  pushHeading('5. よくある質問');
-  marks.faq.push(push('Q. AIが関係ないメッセージをタスクにしてしまった',
-    'A. 行は削除せず、タスク状況を「対象外」に変更してください(記録として残ります)。'));
-  marks.faq.push(push('Q. 通知やタスクのサロン名が空欄・不自然になっている',
-    'A. 通常はBot参加時にLINEのグループ名が自動で入ります。空欄や不自然な場合は「顧客マスタ」シートのB列を記入・修正してください(それ以降のタスクや通知に反映されます)。'));
-  marks.faq.push(push('Q. タスク状況を変えたのに行の色が変わらない',
-    'A. 手入力ではなくプルダウン(セル右の「▾」)から選んでください。'));
+  pushHeading('3. よくある質問');
+  marks.faq.push(push('Q. お客様に自動で返信が送られることはある？',
+    'A. ありません。記録用アカウントはグループ内で一切発言しません。「返信提案」はこのシート内の下書きで、送信はすべて担当者が行います。'));
+  marks.faq.push(push('Q. お客様から連絡が来たのに、タスクに出てこない',
+    'A. 反映まで通常5分、遅い場合で15分ほどかかります。また、雑談・お礼だけの発言、スタンプ、自社メンバーの発言、1対1のトークはタスクになりません。それでも出てこない場合は管理者へ連絡してください。'));
+  marks.faq.push(push('Q. 関係のない連絡までタスクになっている',
+    'A. そのままで構いません。このシートは見落としを確認するためのもので、消す必要はありません(取りこぼしを防ぐため、AIは迷ったら多めに拾う設定にしています)。'));
   marks.faq.push(push('Q. LINEの朝の通知はいつ届く？',
-    'A. 毎朝10時台に1回届きます(土日・祝日・年末年始12/29〜1/3はお休みです)。内容は前回の通知以降に届いた新しい連絡の一覧です(月曜は金曜10時以降の分)。通知の「タスク一覧を開く」ボタンを押すと、端末の標準ブラウザでこのファイルが開きます(初回はGoogleへのログインが必要な場合があります)。'));
+    'A. 平日の朝10時台に1回届きます(土日・祝日・年末年始12/29〜1/3はお休みです)。内容は前回の通知以降に届いた新しい連絡の一覧です(月曜は金曜10時以降の分)。通知の「タスク一覧を開く」ボタンを押すと、端末の標準ブラウザでこのファイルが開きます(初回はGoogleへのログインが必要な場合があります)。'));
+  marks.faq.push(push('Q. 通知に「分析失敗◯件」「サロン名未設定のグループが◯件」と出た',
+    'A. どちらも管理者へ連絡してください。「分析失敗」は一部の連絡をAIが読み取れなかったサインです(該当のやり取りはLINEのトーク履歴で確認できます)。'));
   marks.faq.push(push('Q. 困ったときは',
     'A. システム管理者へ連絡してください。エラーは自動で管理者にも通知されています。'));
 
@@ -353,17 +360,6 @@ function buildGuideSheet_(sheet) {
   sheet.getRange(calloutRow, 1, 1, 3).merge()
     .setBackground(HEADER_STYLE.HUMAN_BG).setFontWeight('bold');
 
-  // タスク状況の凡例: タスク一覧の条件付き書式と同じ色を静的に塗る
-  GUIDE_STATUS_MEANINGS.forEach(function (item, i) {
-    const cell = sheet.getRange(statusStartRow + i, 1);
-    cell.setBorder(true, true, true, true, null, null, '#d7dbde', SpreadsheetApp.BorderStyle.SOLID);
-    const style = findStatusStyle_(item.status);
-    if (!style) return; // 未対応=既定の白
-    cell.setBackground(style.background);
-    if (style.fontColor) cell.setFontColor(style.fontColor);
-    if (style.strikethrough) cell.setFontLine('line-through');
-  });
-
   // 補足文(グレー)
   marks.notes.forEach(function (row) {
     sheet.getRange(row, 1, 1, 3).merge().setWrap(true).setFontColor('#5f6368');
@@ -374,14 +370,6 @@ function buildGuideSheet_(sheet) {
     sheet.getRange(row, 1).setFontWeight('bold').setWrap(true);
     sheet.getRange(row, 2, 1, 2).merge().setWrap(true);
   });
-}
-
-/** タスク状況名から行色スタイルを引く(未対応=既定の白はnull) */
-function findStatusStyle_(status) {
-  for (let i = 0; i < TASK_STATUS_STYLES.length; i++) {
-    if (TASK_STATUS_STYLES[i].status === status) return TASK_STATUS_STYLES[i];
-  }
-  return null;
 }
 
 /**

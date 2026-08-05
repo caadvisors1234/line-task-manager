@@ -1,7 +1,7 @@
 # LINEタスク管理Bot 実装プラン
 
 **株式会社サイバーアクセル・アドバイザーズ — お客様LINEにおける対応漏れ防止システム**
-作成日: 2026-07-02 / 版: 1.3（2026-08-04）
+作成日: 2026-07-02 / 版: 1.4（2026-08-05）
 
 **変更履歴**
 
@@ -11,6 +11,7 @@
 | 1.2 | 2026-07-22 | テスト運用フィードバック反映（通知10時化・元の連絡文列・Dropbox保存先変更） |
 | （版数なし） | 2026-07-24 / 07-30 | 日次サマリの土日祝・年末年始スキップ、「新着連絡サマリ」化を本文各所へ反映 |
 | 1.3 | 2026-08-04 | 変更履歴を整備。セットアップヘルパー関数（`setupLineBotUserId()` / `exchangeDropboxAuthCodeFromProp()`）と自動管理プロパティ（`TASK_ID_SEQ` / `ANALYSIS_LOCK_UNTIL`）を追記。Dropboxアクセストークンのキャッシュ期間の表記を実装どおり「`expires_in` の90%（約3.6時間）」に統一 |
+| 1.4 | 2026-08-05 | 本番運用でタスクの進捗管理を先方の既存タスク管理シートへ一本化する方針を反映（§3.7）。タスク一覧の A・B・C・H 列を「使わない列」＝グレー見出しへ変更、使い方シートを「毎朝の照合」主題へ全面改訂、稼働中シートへ説明変更を反映する `refreshGuideAndHeaders()` を追加 |
 
 ---
 
@@ -116,7 +117,7 @@
 | `taskRepo.gs` | タスク一覧シートの読み書き（Botが書ける列を限定） | `createTask_(task)` / `issueTaskId_()` / `getOpenTasksBySalon_(salonName)` / `getTasksForSummary_(sinceStr, untilStr)` / `appendAttachmentLink_(taskId, url)` |
 | `masterRepo.gs` | 顧客マスタ・設定・返信テンプレートの読み取り | `resolveSalonName_(groupId)` / `registerNewGroup_(groupId)` / `getInternalUserIds_()` / `getSettings_()` / `getReplyTemplates_()` |
 | `notifier.gs` | 日次サマリ・管理者通知 | `sendDailySummary()`（日次トリガー） / `fallbackLastSentAt_(now, holidays)` / `isUrgentTask_(t, dueLimit)` / `buildSummaryFlex_(tasks, options)` / `buildSummaryText_(tasks, options)`（フォールバック用） / `notifyAdmin_(message)` |
-| `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `setupLineBotUserId()`（BotのユーザーIDを `/v2/bot/info` から取得しプロパティへ自動保存。§8.1） / `checkConfiguration()`（設定漏れ検査） / `backfillSalonNames()`（サロン名空欄行への一括記入。§3.3） |
+| `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `setupLineBotUserId()`（BotのユーザーIDを `/v2/bot/info` から取得しプロパティへ自動保存。§8.1） / `checkConfiguration()`（設定漏れ検査） / `backfillSalonNames()`（サロン名空欄行への一括記入。§3.3） / `refreshGuideAndHeaders()`（稼働中シートへの説明反映。使い方シートの作り直し＋タスク一覧ヘッダーの再設定。§3.7） |
 | `utils.gs` | 共通処理 | `withScriptLock_(fn, timeoutMs)` / `fetchWithRetry_(url, params, maxRetry)` / `formatDateTime_(date)` / `logError_(context, error)` |
 | `test.gs` | 手動テスト用 | `test_simulateTextMessage()` / `test_simulateImageMessage()` / `test_runAnalysisOnFixture()` / `test_buildSummary()` / `test_buildSummaryFlex()` / `test_isUrgentTask()` / `test_fallbackLastSentAt()` / `test_getTasksForSummarySince()` / `test_downloadSharedLinkFile()` / `test_collectAnalysisImages()` / `test_runAnalysisOnImageFixture()` / `test_isGroupReadyForAnalysis()` / `test_runAnalysisOnMergeFixture()`（§9.1） |
 
@@ -274,11 +275,13 @@
 
 非エンジニアの担当者向けの表示改善。コードは `COL` の列番号で動作しヘッダー文字列に依存しないため、以下はすべて表示レイヤーのみの設計である（唯一の例外は設定シートA列の項目名で、`SETTING_KEY` と一致必須のため変更しない）。
 
-- **使い方シート**: 先頭タブに説明専用シート「使い方」を置く（`buildGuideSheet_`。プログラムからは読み書きしない）。内容: 全体の流れ／各シートの役割／タスク状況の色付き凡例（`TASK_STATUS_STYLES` を再利用した静的塗り）／列の記入分担／よくある質問。
-- **ヘッダーの色分け**: 全シートの見出し行を「人が記入・更新する列= `#d9f2e5`（緑）」「AIが自動記入する列= `#24292e`（墨色・白文字）」の2色で塗り分ける。タスク一覧では A・B・C・H が緑（A・H はAI初期値→人が更新のため人側に含める）。
-- **セルメモ**: 各列見出しに「【記入する人】／【内容】／【例】」の3ブロック定型でメモ（setNote）を付与する。
+- **前提（本番運用の役割分担）**: タスクの進捗管理は先方の既存タスク管理シートへ一本化し（「タスク状況」列の新設・色分けは `tools/task-status-column/`）、本システムのタスク一覧は「対応漏れの照合と原文・返信提案の参照」に用いる。現場は毎朝の新着連絡サマリを全員で全件確認し、タスク一覧には書き込まない。表示レイヤーはこの役割分担に合わせる。
+- **使い方シート**: 先頭タブに説明専用シート「使い方」を置く（`buildGuideSheet_`。プログラムからは読み書きしない）。内容: 毎朝これだけやる（3ステップ）／このシートの見方（確認に使う列と使わない列）／よくある質問。現場向けの詳細は `docs/manual.html` に集約し、本シートはその要約に留める。
+- **ヘッダーの色分け**: 全シートの見出し行を「人が記入・更新する列= `#d9f2e5`（緑）」「AIが自動記入する列= `#24292e`（墨色・白文字）」「使わない列= `#eef0f3`（グレー・薄字）」の3色で塗り分ける。タスク一覧では進捗管理に用いる A・B・C・H がグレー（`unused: true`）で、緑の列はない。
+- **セルメモ**: 各列見出しに「【記入する人】／【内容】／【例】」の3ブロック定型でメモ（setNote）を付与する。使わない列は「【この列は使いません】／【内容】」の形式とし、進捗管理は既存のタスク管理シートで行う旨を明記する。
 - **列名の平易化**: カタカナ技術用語は日本語＋「(システム用)」付記へ（例: messageId→メッセージID(システム用)）。用語「起票」はシート上・通知上の表記では「登録」に統一する（本書の設計用語としての「起票」は維持）。
-- ヘッダー定義（列名・メモ・色区分）は `setup.gs` の `*_HEADER_DEFS` 定数に集約する。変更の反映は、対象シートを削除して `setupSpreadsheet()` を再実行する（既存シートスキップの冪等設計のため。設定シートを再生成した場合は「一次受け定型文」の再記入が必要。「自社メンバーuserIDリスト」は社内グループでの発言から自動で再追記される。§3.4）。
+- ヘッダー定義（列名・メモ・色区分）は `setup.gs` の `*_HEADER_DEFS` 定数に集約する。
+- **稼働中シートへの反映**: `setupSpreadsheet()` は既存シートをスキップするため、説明の変更は反映されない。使い方シートの文面とタスク一覧ヘッダー（色・メモ）の変更は `refreshGuideAndHeaders()` を実行して反映する（使い方シートは削除して再作成、タスク一覧は1行目のみ再設定でデータには触れない）。他シートのヘッダー変更を反映する場合は、対象シートを削除して `setupSpreadsheet()` を再実行する（設定シートを再生成した場合は「一次受け定型文」の再記入が必要。「自社メンバーuserIDリスト」は社内グループでの発言から自動で再追記される。§3.4）。
 
 ---
 

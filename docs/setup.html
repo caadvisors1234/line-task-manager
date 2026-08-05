@@ -964,7 +964,11 @@
     <div class="cautions">
       <div class="caution"><div class="d">
         <strong>「担当者名」「対応期日」「納品データ」「タスク状況(進捗)」列は未使用</strong>
-        AIが入れた初期値のまま残ります(「タスク状況」の初期値により行に色が付きますが、運用上の意味はありません)。列の削除・非表示は行っていません。誤起票の行も削除せず放置で構いません。
+        見出しを<em>グレー(<code>#eef0f3</code>)</em>に塗り分け、セルメモにも「【この列は使いません】」と明記しています(<code>TASK_HEADER_DEFS</code> の <code>unused: true</code>)。AIが入れた初期値はそのまま残り、「タスク状況」の初期値により行に色が付きますが、運用上の意味はありません。列の削除・非表示は行っておらず、誤起票の行も削除せず放置で構いません。
+      </div></div>
+      <div class="caution"><div class="d">
+        <strong>説明を変更したら <code>refreshGuideAndHeaders()</code> を実行する</strong>
+        <code>setupSpreadsheet()</code> は既存シートをスキップするため、使い方シートの文面やタスク一覧ヘッダー(色・メモ)を変更しても稼働中のシートには反映されません。<code>clasp push</code> のあと、GASエディタから <code>refreshGuideAndHeaders()</code> を実行してください(使い方シートは削除して作り直し、タスク一覧は1行目のヘッダーのみ再設定するため、タスクのデータには触れません)。
       </div></div>
       <div class="caution"><div class="d">
         <strong>サマリの「タスク一覧を開く」ボタンはBotのスプレッドシートを開く</strong>

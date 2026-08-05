@@ -26,12 +26,15 @@
 
 ## 1. 切替前チェック(当日朝までに)
 
-1. GASエディタで `checkConfiguration()` を実行し、全項目OKを確認する。
-2. `clasp list-deployments` でWebhookデプロイが最新コードのバージョンであることを確認する
+1. 最新コードを `clasp push` し、GASエディタで `refreshGuideAndHeaders()` を実行する
+   (稼働中シートの「使い方」タブとタスク一覧ヘッダーを現行の説明へ更新する。`setupSpreadsheet()` は
+   既存シートをスキップするため、これを実行しないと旧い説明が残る)。
+2. GASエディタで `checkConfiguration()` を実行し、全項目OKを確認する。
+3. `clasp list-deployments` でWebhookデプロイが最新コードのバージョンであることを確認する
    (直近で `doPost` 系のコードを変更していれば `clasp update-deployment <deploymentId>` を先に実施)。
-3. 平日に `sendDailySummary()` を手動実行し、テストグループへFlex形式のサマリが届くことを確認する
+4. 平日に `sendDailySummary()` を手動実行し、テストグループへFlex形式のサマリが届くことを確認する
    (土日祝は関数冒頭の判定でスキップされ届かない。手動実行は `SUMMARY_LAST_SENT_AT` を更新する点に注意)。
-4. 必要に応じて GASエディタで `test_*` の回帰テストを実行する(§9.1)。
+5. 必要に応じて GASエディタで `test_*` の回帰テストを実行する(§9.1)。
 
 ## 2. 本番の社内通知グループの準備
 
