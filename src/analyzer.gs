@@ -135,17 +135,18 @@ function analyzeGroup_(groupId, targetMessages, settings) {
   // 応答1要素 = タスク1件。同一用件にまとめられた複数メッセージが1タスクになる(§4.3)
   results.forEach(function (result) {
     const members = memberMessages_(result, targetMessages);
-    // 対象メッセージを1件も含まない要素(全IDが幻覚)は起票しない。
-    // 対象の網羅はcallAnalysis_で検証済みのため、ここで未分析が取り残されることはない
+    // 対象メッセージを1件も含まない要素(全IDが幻覚、またはタスク化しない要素で重複補正により
+    // 除去済み)は起票しない。対象の網羅はcallAnalysis_で検証済みのため、
+    // ここで未分析が取り残されることはない(タスク化する要素の根拠消失はreconcile側でエラー)
     if (members.length > 0) applyTaskResult_(members, result, openTaskIds);
   });
 }
 
 /**
- * Gemini呼び出し+応答の形式検証。
- * 全対象メッセージが、いずれかのタスク要素の sourceMessageIds にちょうど1回ずつ
- * 現れることを確認する(欠落=取りこぼし、重複=同一メッセージからの二重起票)。
- * 対象外のID(会話文脈や幻覚)は起票側で無視するため、ここでは記録のみで失敗させない。
+ * Gemini呼び出し+応答の形式検証・補正。
+ * 全対象メッセージがいずれかのタスク要素の sourceMessageIds に現れることを確認し、
+ * 欠落(=取りこぼし)はparseエラーとして投げる。要素をまたいだ重複は
+ * reconcileSourceMessageIds_ が補正する(タスク化する要素の根拠が失われる場合のみエラー)。
  */
 function callAnalysis_(context, targetMessages, imageParts) {
   const results = callGemini_(ANALYSIS_SYSTEM_PROMPT, context, buildResponseSchema_(), imageParts);
@@ -154,42 +155,94 @@ function callAnalysis_(context, targetMessages, imageParts) {
     error.geminiErrorType = 'parse';
     throw error;
   }
+  reconcileSourceMessageIds_(results, targetMessages);
+  return results;
+}
 
+/**
+ * 応答各要素の sourceMessageIds を検証・補正する(resultsを直接書き換える)。
+ * - 対象外のID(会話文脈や幻覚): 記録のみ(memberMessages_が無視するため失敗させない)
+ * - 要素をまたいだ重複: 二重起票を防ぐため一方の要素にのみ帰属させる。タスク化する要素
+ *   (needsTask=true)を優先し、同格なら初出の要素に残す。1メッセージに複数用件が
+ *   含まれていた可能性があるため、関係した両要素の needsReview を true にして
+ *   人の確認に倒す(プロンプトのルール7に対応)
+ * - 欠落、およびタスク化する要素の根拠(対象メッセージ)が重複除去で空になる場合:
+ *   取りこぼしに直結するためparseエラーを投げる(呼び出し元が1回だけ再試行)
+ */
+function reconcileSourceMessageIds_(results, targetMessages) {
   // Object.create(null): 'constructor'等のIDを幻覚された際にObject.prototypeへ当たるのを防ぐ
   const targetIds = Object.create(null);
   targetMessages.forEach(function (m) { targetIds[m.messageId] = true; });
-  const covered = Object.create(null);
-  const duplicated = [];
+  const owners = Object.create(null); // messageId → そのIDを帰属させた要素
+  const duplicated = Object.create(null); // 要素をまたいで重複したID(ログ用)
   const unknown = [];
-  results.forEach(function (result) {
+  const lostByElement = results.map(function () { return []; }); // 重複除去で失った対象ID
+
+  results.forEach(function (result, index) {
     const ids = Array.isArray(result.sourceMessageIds) ? result.sourceMessageIds : [];
-    const seenInResult = Object.create(null);
+    const kept = [];
     ids.forEach(function (id) {
       if (!targetIds[id]) {
         unknown.push(id);
+        kept.push(id);
         return;
       }
-      // 同一要素内の重複列挙はmemberMessages_が畳み込むため異常ではない。
-      // 二重起票につながるのは要素をまたいだ重複のみ
-      if (seenInResult[id]) return;
-      seenInResult[id] = true;
-      if (covered[id]) duplicated.push(id);
-      covered[id] = true;
+      const owner = owners[id];
+      if (!owner) {
+        owners[id] = result;
+        kept.push(id);
+        return;
+      }
+      // 同一要素内の重複列挙はmemberMessages_が畳み込むため異常ではない
+      if (owner === result) {
+        kept.push(id);
+        return;
+      }
+      // 要素をまたいだ重複: 1メッセージ複数用件の可能性があるため両要素を要確認化し、
+      // タスク化する要素を優先して一方にのみ帰属させる(二重起票の防止)
+      duplicated[id] = true;
+      owner.needsReview = true;
+      result.needsReview = true;
+      if (result.needsTask && !owner.needsTask) {
+        // 帰属先をこの要素へ移す(ownerは処理済みのため配列から直接取り除く)
+        owner.sourceMessageIds = owner.sourceMessageIds.filter(function (x) { return x !== id; });
+        owners[id] = result;
+        kept.push(id);
+        return;
+      }
+      lostByElement[index].push(id); // keptに入れない = この要素から取り除く
     });
+    result.sourceMessageIds = kept;
   });
-  if (unknown.length > 0) {
-    logError_('callAnalysis_:unknownSourceIds', '対象外のsourceMessageIdsを無視: ' + unknown.join(', '));
-  }
+
   const missing = targetMessages
-    .filter(function (m) { return !covered[m.messageId]; })
+    .filter(function (m) { return !owners[m.messageId]; })
     .map(function (m) { return m.messageId; });
-  if (missing.length > 0 || duplicated.length > 0) {
+  // タスク化する要素の根拠(対象メッセージ)が重複除去で空になった場合、そのまま進めると
+  // 起票されないまま分析済みになり取りこぼしになるため、欠落と同様にエラーへ倒す
+  const starved = [];
+  results.forEach(function (result, index) {
+    if (!result.needsTask || lostByElement[index].length === 0) return;
+    const hasTarget = result.sourceMessageIds.some(function (id) { return targetIds[id]; });
+    if (!hasTarget) starved.push.apply(starved, lostByElement[index]);
+  });
+  if (missing.length > 0 || starved.length > 0) {
     const error = new Error('Gemini応答のsourceMessageIdsが不正(欠落: [' + missing.join(', ') +
-      '] / 重複: [' + duplicated.join(', ') + '])');
+      '] / タスク要素の根拠が重複除去で消失: [' + starved.join(', ') + '])');
     error.geminiErrorType = 'parse';
     throw error;
   }
-  return results;
+  // ログはエラー判定の後に書く(parse再試行で破棄される試行分の二重記録を避ける)
+  if (unknown.length > 0) {
+    logError_('reconcileSourceMessageIds_:unknownSourceIds',
+      '対象外のsourceMessageIdsを無視: ' + unknown.join(', '));
+  }
+  const duplicatedIds = Object.keys(duplicated);
+  if (duplicatedIds.length > 0) {
+    logError_('reconcileSourceMessageIds_:duplicateSourceIds',
+      '要素をまたいで重複したsourceMessageIdsを一方の要素へ帰属(関係要素を要確認化): ' +
+      duplicatedIds.join(', '));
+  }
 }
 
 /** タスク要素の sourceMessageIds に対応する対象メッセージを受信順で返す(§4.3) */

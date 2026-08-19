@@ -291,6 +291,93 @@ function test_truncateForCell() {
     truncateForCell_(long) === long);
 }
 
+/**
+ * reconcileSourceMessageIds_ の検証・補正を確認する(§4.3)。
+ * 対象外ID・要素間重複のケースではエラーログシートに記録行が追加される(仕様どおり)。
+ */
+function test_reconcileSourceMessageIds() {
+  const targets = [{ messageId: 'm1' }, { messageId: 'm2' }, { messageId: 'm3' }];
+
+  const ok = [
+    { sourceMessageIds: ['m1', 'm2'], needsReview: false },
+    { sourceMessageIds: ['m3'], needsReview: false }
+  ];
+  reconcileSourceMessageIds_(ok, targets);
+  assert_('正常応答(全IDちょうど1回)は変更されない',
+    ok[0].sourceMessageIds.join(',') === 'm1,m2' && ok[1].sourceMessageIds.join(',') === 'm3' &&
+      !ok[0].needsReview && !ok[1].needsReview);
+
+  const dup = [
+    { sourceMessageIds: ['m1', 'm2'], needsReview: false },
+    { sourceMessageIds: ['m2', 'm3'], needsReview: false }
+  ];
+  reconcileSourceMessageIds_(dup, targets);
+  assert_('要素間で重複したIDは初出の要素にのみ残る(同格の場合)',
+    dup[0].sourceMessageIds.join(',') === 'm1,m2' && dup[1].sourceMessageIds.join(',') === 'm3',
+    JSON.stringify([dup[0].sourceMessageIds, dup[1].sourceMessageIds]));
+  assert_('重複に関係した両要素が要確認になる',
+    dup[0].needsReview === true && dup[1].needsReview === true);
+
+  // タスク化する要素を優先して帰属させる(初出がタスク化しない要素でも依頼が失われない)
+  const transfer = [
+    { sourceMessageIds: ['m1'], needsTask: false, needsReview: false },
+    { sourceMessageIds: ['m1', 'm2'], needsTask: true, needsReview: false },
+    { sourceMessageIds: ['m3'], needsTask: false, needsReview: false }
+  ];
+  reconcileSourceMessageIds_(transfer, targets);
+  assert_('重複IDはタスク化する要素へ帰属が移る',
+    transfer[0].sourceMessageIds.length === 0 &&
+      transfer[1].sourceMessageIds.join(',') === 'm1,m2',
+    JSON.stringify([transfer[0].sourceMessageIds, transfer[1].sourceMessageIds]));
+  assert_('帰属を移した両要素が要確認になる',
+    transfer[0].needsReview === true && transfer[1].needsReview === true &&
+      transfer[2].needsReview === false);
+
+  // 同一要素内の繰り返しが、要素間重複として除去済みのIDを復活させないこと(二重起票防止)
+  const revive = [
+    { sourceMessageIds: ['m1', 'm2'], needsReview: false },
+    { sourceMessageIds: ['m1', 'm1', 'm3'], needsReview: false }
+  ];
+  reconcileSourceMessageIds_(revive, targets);
+  assert_('除去済みIDは同一要素内の繰り返しでも復活しない',
+    revive[0].sourceMessageIds.join(',') === 'm1,m2' &&
+      revive[1].sourceMessageIds.join(',') === 'm3',
+    JSON.stringify([revive[0].sourceMessageIds, revive[1].sourceMessageIds]));
+
+  const noisy = [{ sourceMessageIds: ['m1', 'm1', 'ghost', 'm2', 'm3'], needsReview: false }];
+  reconcileSourceMessageIds_(noisy, targets);
+  assert_('同一要素内の繰り返し・対象外IDはそのまま残り要確認にならない',
+    noisy[0].sourceMessageIds.join(',') === 'm1,m1,ghost,m2,m3' && !noisy[0].needsReview,
+    noisy[0].sourceMessageIds.join(','));
+
+  let thrown = null;
+  try {
+    reconcileSourceMessageIds_([{ sourceMessageIds: ['m1'] }], targets);
+  } catch (e) {
+    thrown = e;
+  }
+  assert_('欠落はparseエラーとして投げられる(欠落IDを列挙)',
+    thrown !== null && thrown.geminiErrorType === 'parse' &&
+      thrown.message.indexOf('m2') !== -1 && thrown.message.indexOf('m3') !== -1,
+    thrown && thrown.message);
+
+  // タスク化する要素同士が同一メッセージだけを根拠に取り合った場合は、
+  // 片方の依頼が黙って消えないようparseエラーへ倒す(再試行→失敗なら分析エラーで顕在化)
+  let starvedThrown = null;
+  try {
+    reconcileSourceMessageIds_([
+      { sourceMessageIds: ['m1', 'm2', 'm3'], needsTask: true },
+      { sourceMessageIds: ['m1'], needsTask: true }
+    ], targets);
+  } catch (e) {
+    starvedThrown = e;
+  }
+  assert_('タスク要素の根拠が重複除去で空になる場合はparseエラー',
+    starvedThrown !== null && starvedThrown.geminiErrorType === 'parse' &&
+      starvedThrown.message.indexOf('m1') !== -1,
+    starvedThrown && starvedThrown.message);
+}
+
 // ---------------------------------------------------------------------------
 // P4: サマリ生成
 // ---------------------------------------------------------------------------
