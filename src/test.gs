@@ -616,6 +616,33 @@ function test_getTasksForSummarySince() {
   assert_('since=R列値ちょうどの行は含まれない(>判定・二重通知防止)', excluded.length === 0);
 }
 
+/** 「分析失敗◯件」の対象窓判定(境界・窓外・ステータス除外)を確認する(§4.4) */
+function test_countAnalysisErrorsWindow() {
+  const groupId = ensureTestGroup_('errw0000000000000000000000001', 'テストサロン様');
+  // 実運用ログと重ならない過去の固定時刻(同テストの再実行分は件数差分の比較で吸収する)
+  const receivedAt = '2001-02-03 04:05:06';
+  const dayStart = '2001-02-03 00:00:00';
+  const dayEnd = '2001-02-03 23:59:59';
+  const base = {
+    day: countAnalysisErrors_(dayStart, dayEnd),
+    untilEq: countAnalysisErrors_(dayStart, receivedAt),
+    sinceEq: countAnalysisErrors_(receivedAt, dayEnd)
+  };
+
+  insertFixtureLog_(groupId, 'テストサロン様', SPEAKER.CUSTOMER, '分析失敗の窓テスト(エラー行)',
+    { receivedAt: receivedAt, analysisStatus: STATUS.ANALYSIS.ERROR });
+  // 分析対象外の行は窓内でも数えない(PENDINGにすると分析バッチが実際に走るためSKIPで代用)
+  insertFixtureLog_(groupId, 'テストサロン様', SPEAKER.CUSTOMER, '分析失敗の窓テスト(対象外行)',
+    { receivedAt: receivedAt, analysisStatus: STATUS.ANALYSIS.SKIP });
+
+  assert_('窓内(since < A列 <= until)のエラー行のみ数えられる',
+    countAnalysisErrors_(dayStart, dayEnd) === base.day + 1);
+  assert_('until=A列値ちょうどの行は含まれる(<=判定)',
+    countAnalysisErrors_(dayStart, receivedAt) === base.untilEq + 1);
+  assert_('since=A列値ちょうどの行は含まれない(>判定・二重通知防止)',
+    countAnalysisErrors_(receivedAt, dayEnd) === base.sinceEq);
+}
+
 // ---------------------------------------------------------------------------
 // P5: Webhook受信系(LINE不要。プロフィール取得は失敗→「(取得不可)」で続行)
 // ---------------------------------------------------------------------------
