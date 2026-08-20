@@ -48,7 +48,8 @@ function sendDailySummary() {
     // 「採時済みだが読み取り時点で未可視」の行が窓から永久に漏れるのを防ぐ
     // (上限直前の到着は従来どおり翌営業日に繰り越されるだけで、漏れない)
     const now = new Date();
-    const untilStr = formatDateTime_(new Date(now.getTime() - 60 * 1000));
+    const until = new Date(now.getTime() - 60 * 1000);
+    const untilStr = formatDateTime_(until);
     // プロパティが手動編集等で不正書式になっていたら初回同様のフォールバックで自己回復する
     // (人手で直すまで毎営業日エラー停止し続けるのを防ぐ。1回分の重複通知は許容)
     const lastSentStr = getProp_(CONFIG.PROP.SUMMARY_LAST_SENT_AT);
@@ -69,7 +70,13 @@ function sendDailySummary() {
       since: since,
       dueSoonDays: settings.dueSoonDays,
       maxItems: settings.summaryMaxItems,
-      errorCount: countAnalysisErrors_(),
+      // 分析失敗は前回サマリ以降の発生分のみ通知する。エラー確定は受信から最大35分ほど
+      // 遅れるため、タスクと同じ窓では送信直前受信→送信後確定の行が漏れる。窓全体を
+      // SUMMARY_ERROR_WINDOW_LAG_MS だけ過去へずらして数える(窓は連続し漏れ・重複なし)
+      errorCount: countAnalysisErrors_(
+        formatDateTime_(new Date(since.getTime() - CONFIG.SUMMARY_ERROR_WINDOW_LAG_MS)),
+        formatDateTime_(new Date(until.getTime() - CONFIG.SUMMARY_ERROR_WINDOW_LAG_MS))
+      ),
       unnamedGroupCount: countUnnamedActiveGroups_(),
       sheetUrl: externalBrowserUrl_(getSpreadsheet_().getUrl())
     };

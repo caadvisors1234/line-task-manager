@@ -160,10 +160,17 @@ function updateDropboxLink_(rowIndex, value) {
     .getRange(rowIndex, COL.LOG.DROPBOX_LINK).setValue(value);
 }
 
-/** 末尾N行の分析エラー件数(日次サマリの「分析失敗◯件」用。§4.3) */
-function countAnalysisErrors_() {
+/**
+ * 対象窓内(sinceStr < 受信日時 <= untilStr)の分析エラー件数(日次サマリの「分析失敗◯件」用。§4.4)。
+ * A列は yyyy-MM-dd HH:mm:ss のテキスト保存のため辞書順比較がそのまま時刻順比較になる
+ * (手動再入力等でDate型に化けたセルは getTasksForSummary_ と同様に防御する)。
+ */
+function countAnalysisErrors_(sinceStr, untilStr) {
   const tail = getLogTail_();
   return tail.values.filter(function (row) {
-    return String(row[COL.LOG.ANALYSIS_STATUS - 1]) === STATUS.ANALYSIS.ERROR;
+    if (String(row[COL.LOG.ANALYSIS_STATUS - 1]) !== STATUS.ANALYSIS.ERROR) return false;
+    const raw = row[COL.LOG.RECEIVED_AT - 1];
+    const receivedAt = raw instanceof Date ? formatDateTime_(raw) : String(raw || '');
+    return receivedAt > sinceStr && receivedAt <= untilStr;
   }).length;
 }

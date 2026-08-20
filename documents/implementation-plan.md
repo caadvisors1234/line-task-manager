@@ -119,7 +119,7 @@
 | `notifier.gs` | 日次サマリ・管理者通知 | `sendDailySummary()`（日次トリガー） / `fallbackLastSentAt_(now, holidays)` / `isUrgentTask_(t, dueLimit)` / `buildSummaryFlex_(tasks, options)` / `buildSummaryText_(tasks, options)`（フォールバック用） / `notifyAdmin_(message)` |
 | `setup.gs` | 初期構築ワンタイム関数 | `setupSpreadsheet()`（シート・プルダウン・条件付き書式・使い方シート・ヘッダー色分けとメモの生成。§3.7） / `installTriggers()` / `setupLineBotUserId()`（BotのユーザーIDを `/v2/bot/info` から取得しプロパティへ自動保存。§8.1） / `checkConfiguration()`（設定漏れ検査） / `backfillSalonNames()`（サロン名空欄行への一括記入。§3.3） / `refreshGuideAndHeaders()`（稼働中シートへの説明反映。使い方シートの作り直し＋タスク一覧ヘッダーの再設定。§3.7） |
 | `utils.gs` | 共通処理 | `withScriptLock_(fn, timeoutMs)` / `fetchWithRetry_(url, params, maxRetry)` / `formatDateTime_(date)` / `logError_(context, error)` |
-| `test.gs` | 手動テスト用 | `test_simulateTextMessage()` / `test_simulateImageMessage()` / `test_runAnalysisOnFixture()` / `test_buildSummary()` / `test_buildSummaryFlex()` / `test_isUrgentTask()` / `test_fallbackLastSentAt()` / `test_getTasksForSummarySince()` / `test_downloadSharedLinkFile()` / `test_collectAnalysisImages()` / `test_runAnalysisOnImageFixture()` / `test_isGroupReadyForAnalysis()` / `test_runAnalysisOnMergeFixture()`（§9.1） |
+| `test.gs` | 手動テスト用 | `test_simulateTextMessage()` / `test_simulateImageMessage()` / `test_runAnalysisOnFixture()` / `test_buildSummary()` / `test_buildSummaryFlex()` / `test_isUrgentTask()` / `test_fallbackLastSentAt()` / `test_getTasksForSummarySince()` / `test_countAnalysisErrorsWindow()` / `test_downloadSharedLinkFile()` / `test_collectAnalysisImages()` / `test_runAnalysisOnImageFixture()` / `test_isGroupReadyForAnalysis()` / `test_runAnalysisOnMergeFixture()`（§9.1） |
 
 ### 2.2 スクリプトプロパティ一覧（秘匿情報）
 
@@ -360,7 +360,7 @@
 
 **異常系:**
 - Gemini 429/5xx: 指数バックオフで2回まで再試行。それでも失敗した場合は `未分析` のまま残し（次回5分後に再試行）、メッセージログO列（分析試行回数）を加算して5回に達したら `エラー` にして管理者通知。
-- 応答がスキーマ不一致・パース不能: 1回だけ再試行し、失敗なら `エラー`。**取りこぼし防止を最優先とするため、`エラー` 行は日次サマリに「分析失敗◯件（ログ確認）」として必ず表示する**。
+- 応答がスキーマ不一致・パース不能: 1回だけ再試行し、失敗なら `エラー`。**取りこぼし防止を最優先とするため、`エラー` 行は日次サマリに「分析失敗◯件（ログ確認）」として必ず一度は表示する**（受信日時が入る対象窓のサマリで1回だけ通知。窓の定義は§4.4）。
 - 画像の取得失敗（共有リンク削除・Dropbox障害等）・サイズ超過・枚数超過: その画像は添付せず**メタ情報のみで分析を続行**する（分析は止めず、O列の試行回数も消費しない）。トレードオフとして、一時的な取得失敗でもそのメッセージはテキストのみの判定で「分析済」に確定する（分析停止・滞留より取りこぼし防止を優先する意図的な仕様）。Dropbox認証エラーの場合は§4.2と同じ最重要アラートを管理者へ通知する。
 - 画像を含むリクエストのGemini 400: 画像起因（破損・非対応形式等）の決定的エラーの可能性が高く、`未分析` リトライ5回（約25分）を浪費しないよう、**画像なしの文脈に組み直して1回だけ再実行**する（このフォールバックは最初の失敗が400の場合に発動する。parse再試行の2回目が400のケースは通常のparse失敗として `エラー`）。再実行も失敗した場合は、スキーマ不一致・パース不能なら `エラー`、それ以外（429/5xx等）は従来どおり `未分析` のまま次回再試行。
 - 起票の重複: `起票元messageId`（Q列）で既存タスクを照合し、同一messageIdからの再起票を防ぐ（`findTaskBySourceMessageIds_`。Q列はまとめ起票によりカンマ連結になり得るため、カンマ分割して完全一致で照合する）。まとめ対象のうち1件でも起票済みなら既存タスクIDを返して再起票しないため、単独起票済みのメッセージが後からまとめ直された場合、追加分のリンクはG列に載らない（クールダウンにより稀。取りこぼしより二重起票の防止を優先する）。
@@ -378,6 +378,7 @@
 - 土日祝・年末年始はスキップ日で送信も更新もされないため、**月曜のサマリは自動的に金曜10時以降の到着分をカバー**する。
 - プロパティ未設定時（初回実行）は、`isSummarySkipDay_` で土日祝・年末年始を遡った**直近の前営業日の10:00**をフォールバックとして使う（`fallbackLastSentAt_`。最大14日遡り）。
 - R列が空の行（手動追加行など）は対象外。
+- **「分析失敗◯件」の警告行**は、前回サマリ以降の発生分のみ通知する: 上記の対象窓を `SUMMARY_ERROR_WINDOW_LAG_MS`（1時間）だけ過去へずらした窓（`前回送信時刻−1時間 < メッセージログA列（受信日時） <= 今回上限−1時間`）で `エラー` 行を数える（`countAnalysisErrors_`）。エラー確定は受信から最大35分ほど遅れる（5分間隔×5リトライ＋まとめ待機の持ち越し）ため、タスクと同じ窓では「送信直前に受信→送信後にエラー確定」の行がどの窓にも入らず漏れる。ずらした窓同士は隙間なく連続するため、各エラーはちょうど1回だけ通知される（翌営業日以降のサマリには再表示されない。詳細確認はメッセージログで行う運用）。
 
 **送信日判定:** トリガーは毎日発火するが、土日・祝日・年末年始（12/29〜1/3）は送信せず終了する（`isSummarySkipDay_`）。祝日は holidays-jp API（`https://holidays-jp.github.io/api/v1/date.json`、内閣府データ由来・前年〜翌年分）で判定し、取得失敗時はエラーログへ記録の上、祝日判定なしで送信を続行する（フェイルオープン）。
 
@@ -704,6 +705,7 @@ abc123
 - サマリ生成: フィクスチャのタスク群から§4.4のフォーマット通りに組み立つこと（Flex版=`test_buildSummaryFlex`: 構造・文言・到着順ソート・altText・空文字textなし・JSONサイズ上限。テキスト版=`test_buildSummary`: フォールバック形式・0件時の短文）。件数超過時の切り詰め。
 - [急ぎ]判定（`test_isUrgentTask`）: 緊急度=高、期限間近（境界=dueLimitちょうどを含む）、非該当（緊急度中・期限遠い/なし）。
 - 対象窓の境界（`test_getTasksForSummarySince`）: R列=since の行は含まない（>判定・二重通知防止）、R列=until の行は含む（<=判定）。開発用シートで実行。
+- 分析失敗件数の対象窓（`test_countAnalysisErrorsWindow`）: メッセージログA列（受信日時）で同じ境界判定（> since・<= until）が働き、窓内でも `エラー` 以外のステータスは数えないこと。開発用シートで実行。
 - 初回フォールバック（`test_fallbackLastSentAt`）: 火曜→月曜10:00、月曜→金曜10:00、月曜祝日→前週金曜10:00、1/4→12/28 10:00（年末年始・土日の遡り）。
 - 送信日判定（`test_isSummarySkipDay`）: 土日・祝日（フィクスチャで判定）・年末年始（12/29〜1/3）のスキップ、境界日（12/28・1/4）の送信、祝日一覧が空のときのフェイルオープン（送信）。
 
